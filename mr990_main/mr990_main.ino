@@ -1,81 +1,48 @@
-// Test playing a succession of MIDI files from the SD card.
-// Example program to demonstrate the use of the MIDFile library
-// Just for fun light up a LED in time to the music.
+// Command Line Interface (CLI or CONSOLE) to play MIDI files from the SD card.
+// 
+// Enter commands on the serial monitor to control the application
+// Change the CLI and MIDI outputs to suit your hardware.
+// This should adjust by itself to use Serial1 if USE_SOFTWARSERIAL is set to 0.
 //
-// Hardware required:
-//  SD card interface - change SD_SELECT for SPI comms
-//  3 LEDs (optional) - to display current status and beat. 
-//  Change pin definitions for specific hardware setup - defined below.
+// Library Dependencies
+// MD_cmdProcessor located at https://github.com/MajicDesigns/MD_cmdProcessor
+//
 
 #include <SdFat.h>
 #include <MD_MIDIFile.h>
+#include <MD_cmdProcessor.h>
 
-#define USE_MIDI  1   // set to 1 to enable MIDI output, otherwise debug output
+#define USE_SOFTWARESERIAL 0
 
-#if USE_MIDI // set up for direct MIDI serial output
+// Define Serial comms parameters
+#if USE_SOFTWARESERIAL
+#include <SoftwareSerial.h>
 
-#define DEBUG(s, x)
-#define DEBUGX(s, x)
-#define DEBUGS(s)
-#define SERIAL_RATE 31250
+const uint8_t MIDI_OUT = 2;     // Arduino TX pin number
+const uint8_t MIDI_IN = 3;      // Arduino RX pin number (never used)
+SoftwareSerial MidiOut(MIDI_IN, MIDI_OUT);
 
-#else // don't use MIDI to allow printing debug statements
+#define MIDI MidiOut
+#else // not USE_SOFTWARESERIAL
+#define MIDI Serial1
+#endif
 
-#define DEBUG(s, x)  do { Serial.print(F(s)); Serial.print(x); } while(false)
-#define DEBUGX(s, x) do { Serial.print(F(s)); Serial.print(F("0x")); Serial.print(x, HEX); } while(false)
-#define DEBUGS(s)    do { Serial.print(F(s)); } while (false)
-#define SERIAL_RATE 57600
+#define CONSOLE Serial
 
-#endif // USE_MIDI
-
+const uint32_t CONSOLE_RATE = 57600;
+const uint32_t MIDI_RATE = 31250;
 
 // SD chip select pin for SPI comms.
 // Default SD chip select is the SPI SS pin (10 on Uno, 53 on Mega).
-const uint8_t SD_SELECT = SS;
+const uint8_t SD_SELECT = SS;         
 
-// LED definitions for status and user indicators
-const uint8_t READY_LED = 7;      // when finished
-const uint8_t SMF_ERROR_LED = 6;  // SMF error
-const uint8_t SD_ERROR_LED = 5;   // SD error
-const uint8_t BEAT_LED = 4;       // toggles to the 'beat'
-
-const uint16_t WAIT_DELAY = 2000; // ms
-
+// Miscellaneous
 #define ARRAY_SIZE(a) (sizeof(a)/sizeof((a)[0]))
+void(*hwReset) (void) = 0;            // declare reset function @ address 0
 
-// The files in the tune list should be located on the SD card 
-// or an error will occur opening the file and the next in the 
-// list will be opened (skips errors).
-const char *tuneList[] = 
-{
-  /*"LOOPDEMO.MID",  // simplest and shortest file
-  "BANDIT.MID",*/
-  "ELISE.MID",
-  "TWINKLE.MID",
-  /*"GANGNAM.MID",
-  "FUGUEGM.MID",
-  "POPCORN.MID",
-  "AIR.MID",
-  "PRDANCER.MID",
-  "MINUET.MID",
-  "FIRERAIN.MID",
-  "MOZART.MID",
-  "FERNANDO.MID",
-  "SONATAC.MID",
-  "SKYFALL.MID",
-  "XMAS.MID",
-  "GBROWN.MID",
-  "PROWLER.MID",
-  "IPANEMA.MID",
-  "JZBUMBLE.MID",*/
-};
-
-// These don't play as they need more than 16 tracks but will run if MIDIFile.h is changed
-//#define MIDI_FILE  "SYMPH9.MID"     // 29 tracks
-//#define MIDI_FILE  "CHATCHOO.MID"   // 17 tracks
-//#define MIDI_FILE  "STRIPPER.MID"   // 25 tracks
-
-SDFAT	SD;
+// Global Data
+bool printMidiStream = false;   // flag to print the real time midi stream
+SDFAT SD;
 MD_MIDIFile SMF;
 
 void midiCallback(midi_event *pev)
@@ -83,33 +50,33 @@ void midiCallback(midi_event *pev)
 // thru the midi communications interface.
 // This callback is set up in the setup() function.
 {
-#if USE_MIDI
+  // Send the midi data
   if ((pev->data[0] >= 0x80) && (pev->data[0] <= 0xe0))
   {
-    Serial.write(pev->data[0] | pev->channel);
-    Serial.write(&pev->data[1], pev->size-1);
+    MIDI.write(pev->data[0] | pev->channel);
+    MIDI.write(&pev->data[1], pev->size - 1);
   }
   else
-    Serial.write(pev->data, pev->size);
-#endif
-  DEBUG("\n", millis());
-  DEBUG("\tM T", pev->track);
-  DEBUG(":  Ch ", pev->channel+1);
-  DEBUGS(" Data");
-  for (uint8_t i=0; i<pev->size; i++)
-    DEBUGX(" ", pev->data[i]);
-}
+    MIDI.write(pev->data, pev->size);
 
-void sysexCallback(sysex_event *pev)
-// Called by the MIDIFile library when a system Exclusive (sysex) file event needs 
-// to be processed through the midi communications interface. Most sysex events cannot 
-// really be processed, so we just ignore it here.
-// This callback is set up in the setup() function.
-{
-  DEBUG("\nS T", pev->track);
-  DEBUGS(": Data");
-  for (uint8_t i=0; i<pev->size; i++)
-    DEBUGX(" ", pev->data[i]);
+  // Print the data if enabled
+  if (printMidiStream)
+  {
+    CONSOLE.print(F("\nT"));
+    CONSOLE.print(pev->track);
+    CONSOLE.print(F(": Ch "));
+    if (pev->channel + 1 < 10) CONSOLE.print(F("0"));
+    CONSOLE.print(pev->channel + 1);
+    CONSOLE.print(F(" ["));
+    for (uint8_t i = 0; i < pev->size; i++)
+    {
+      if (i != 0) CONSOLE.print(F(" "));
+      if (pev->data[i] <= 0x0f)
+        CONSOLE.print(F("0"));
+      CONSOLE.print(pev->data[i], HEX);
+    }
+    CONSOLE.print(F("]"));
+  }
 }
 
 void midiSilence(void)
@@ -131,135 +98,229 @@ void midiSilence(void)
     midiCallback(&ev);
 }
 
-void setup(void)
+const char *SMFErr(int err)
 {
-  // Set up LED pins
-  pinMode(READY_LED, OUTPUT);
-  pinMode(SD_ERROR_LED, OUTPUT);
-  pinMode(SMF_ERROR_LED, OUTPUT);
-  pinMode(BEAT_LED, OUTPUT);
+  const char *DELIM_OPEN = "[";
+  const char *DELIM_CLOSE = "]";
 
-  // reset LEDs
-  digitalWrite(READY_LED, LOW);
-  digitalWrite(SD_ERROR_LED, LOW);
-  digitalWrite(SMF_ERROR_LED, LOW);
-  digitalWrite(BEAT_LED, LOW);
-  
-  Serial.begin(SERIAL_RATE);
+  static char szErr[30];
+  char szFmt[10];
 
-  DEBUGS("\n[MidiFile Play List]");
+  static const char PROGMEM E_OK[] = "\nOK";
+  static const char PROGMEM E_FILE_NUL[] = "Empty filename";
+  static const char PROGMEM E_OPEN[] = "Cannot open";
+  static const char PROGMEM E_FORMAT[] = "Not MIDI";
+  static const char PROGMEM E_HEADER[] = "Header size";
+  static const char PROGMEM E_FILE_FMT[] = "File unsupported";
+  static const char PROGMEM E_FILE_TRK0[] = "File fmt 0; trk > 1";
+  static const char PROGMEM E_MAX_TRACK[] = "Too many tracks";
+  static const char PROGMEM E_NO_CHUNK[] = "no chunk"; // n0
+  static const char PROGMEM E_PAST_EOF[] = "past eof"; // n1
+  static const char PROGMEM E_UNKNOWN[] = "Unknown";
+
+  static const char PROGMEM EF_ERR[] = "\n%d %s";    // error number
+  static const char PROGMEM EF_TRK[] = "Trk %d,";  // for errors >= 10
+
+  if (err == MD_MIDIFile::E_OK)    // this is a simple message
+    strcpy_P(szErr, E_OK);
+  else              // this is a complicated message
+  {
+    strcpy_P(szFmt, EF_ERR);
+    sprintf(szErr, szFmt, err, DELIM_OPEN);
+    if (err < 10)
+    {
+      switch (err)
+      {
+      case MD_MIDIFile::E_NO_FILE:  strcat_P(szErr, E_FILE_NUL); break;
+      case MD_MIDIFile::E_NO_OPEN:  strcat_P(szErr, E_OPEN); break;
+      case MD_MIDIFile::E_NOT_MIDI: strcat_P(szErr, E_FORMAT); break;
+      case MD_MIDIFile::E_HEADER:   strcat_P(szErr, E_HEADER); break;
+      case MD_MIDIFile::E_FORMAT:   strcat_P(szErr, E_FILE_FMT); break;
+      case MD_MIDIFile::E_FORMAT0:  strcat_P(szErr, E_FILE_TRK0); break;
+      case MD_MIDIFile::E_TRACKS:   strcat_P(szErr, E_MAX_TRACK); break;
+      default: strcat_P(szErr, E_UNKNOWN); break;
+      }
+    }
+    else      // error encoded with a track number
+    {
+      char szTemp[10];
+
+      // fill in the track number
+      strcpy_P(szFmt, EF_TRK);
+      sprintf(szTemp, szFmt, err / 10);
+      strcat(szErr, szTemp);
+
+      // now do the message
+      switch (err % 10)
+      {
+      case MD_MIDIFile::E_CHUNK_ID:  strcat_P(szErr, E_NO_CHUNK); break;
+      case MD_MIDIFile::E_CHUNK_EOF: strcat_P(szErr, E_PAST_EOF); break;
+      default: strcat_P(szTemp, E_UNKNOWN); break;
+      }
+    }
+    strcat(szErr, DELIM_CLOSE);
+  }
+
+  return(szErr);
+}
+
+// handler functions
+void handlerHelp(char* param); // function prototype
+
+void handlerZS(char* param) { hwReset(); }
+
+void handlerZM(char* param) 
+{ 
+  CONSOLE.print(F("\nMIDI silence"));
+  midiSilence(); 
+  CONSOLE.print(SMFErr(MD_MIDIFile::E_OK)); 
+}
+
+void handlerCL(char* param) 
+{ 
+  SMF.looping(*param != '0'); 
+  CONSOLE.print(F("\nLooping "));
+  CONSOLE.print(SMF.isLooping()); 
+  CONSOLE.print(F(" ")); 
+  CONSOLE.print(SMFErr(MD_MIDIFile::E_OK)); 
+}
+
+void handlerCP(char* param) 
+{ 
+  SMF.pause(*param != '0'); 
+  CONSOLE.print(F("\nPause "));
+  CONSOLE.print(SMF.isPaused());
+  CONSOLE.print(F(" "));
+  CONSOLE.print(SMFErr(MD_MIDIFile::E_OK)); 
+}
+
+void handlerCD(char* param)
+{
+  printMidiStream = !printMidiStream;
+  CONSOLE.print(SMFErr(MD_MIDIFile::E_OK));
+}
+
+void handlerCC(char* param)
+{ 
+  SMF.close(); 
+  CONSOLE.print(F("\nMIDI close"));
+  CONSOLE.print(SMFErr(MD_MIDIFile::E_OK));
+}
+
+void handlerP(char *param)
+// play specified file
+{
+  int err;
+
+  // clean up current environment
+  SMF.close(); // close old MIDI file
+  midiSilence(); // silence hanging notes
+
+  CONSOLE.print(F("\nFile: "));
+  CONSOLE.print(param);
+  err = SMF.load(param); // load the new file
+  CONSOLE.print(SMFErr(err));
+  CONSOLE.print(F(": "));
+  CONSOLE.print(SMF.getFilename());
+}
+
+void handlerF(char *param)
+// set the current folder
+{
+  CONSOLE.print(F("\nFolder: "));
+  CONSOLE.print(param);
+  SMF.setFileFolder(param); // set folder
+}
+
+void handlerL(char *param)
+// list the files in the current folder
+{
+  uint16_t count = 0;
+  SDDIR dir;
+  SDFILE file;    // iterated file
+  char root[] = "/";
+  char *fldr = (*param == '\0' ? root : param);
+
+  CONSOLE.print(F("\n- Listing '"));
+  CONSOLE.print(fldr);
+  CONSOLE.print(F("'"));
+
+  if (!dir.open(fldr))
+  {
+    CONSOLE.print(F("\nError opening folder"));
+  }
+  else
+  {
+    while (file.openNext(&dir, O_RDONLY))
+    {
+      CONSOLE.print(F("\n"));
+      file.printName(&CONSOLE);
+      if (file.isDir()) CONSOLE.write('/');
+      file.close();
+
+      count++;
+    }
+    if (dir.getError())
+      CONSOLE.print(F("\nopenNext() failed"));
+  }
+  CONSOLE.print(F("\n\n"));
+  CONSOLE.print(count);
+  CONSOLE.print(F(" items"));
+  dir.close();
+}
+
+const MD_cmdProcessor::cmdItem_t PROGMEM cmdTable[] =
+{
+  { "?",  handlerHelp, "",     "Help" },
+  { "h",  handlerHelp, "",     "Help" },
+  { "f",  handlerF,    "fldr", "Set current folder to fldr" },
+  { "l",  handlerL,    "fldr", "List files in current folder, / default" },
+  { "p",  handlerP,    "file", "Play the named file" },
+  { "zs", handlerZS,   "",     "Software reset" },
+  { "zm", handlerZM,   "",     "Silence MIDI" },
+  { "cd", handlerCD,   "",     "Toggle dumping of MIDI stream" },
+  { "cl", handlerCL,   "n",    "Looping (n 0=off, 1=on)" },
+  { "cp", handlerCP,   "n",    "Pause (n 0=off, 1=on)" },
+  { "cc", handlerCC,   "",     "Close" },
+};
+
+MD_cmdProcessor CP(CONSOLE, cmdTable, ARRAY_SIZE(cmdTable));
+
+void handlerHelp(char* param)
+{
+  CONSOLE.print(F("\nHelp\n===="));
+  CP.help();
+  CONSOLE.print(F("\n"));
+}
+
+void setup(void) // This is run once at power on
+{
+  MIDI.begin(MIDI_RATE); // For MIDI Output
+  CONSOLE.begin(CONSOLE_RATE); // For Console I/O
+
+  CONSOLE.print(F("\n[MidiFile CLI Player]"));
+  CONSOLE.print(F("\nEnsure that console line termination is set to line feed only.\n"));
 
   // Initialize SD
   if (!SD.begin(SD_SELECT, SPI_FULL_SPEED))
   {
-    DEBUGS("\nSD init fail!");
-    digitalWrite(SD_ERROR_LED, HIGH);
-    while (true) ;
+    CONSOLE.print(F("\nSD init fail!"));
+    while (true);
   }
 
   // Initialize MIDIFile
   SMF.begin(&SD);
   SMF.setMidiHandler(midiCallback);
-  SMF.setSysexHandler(sysexCallback);
+  midiSilence(); // Silence any hanging notes
 
-  digitalWrite(READY_LED, HIGH);
-}
-
-void tickMetronome(void)
-// flash a LED to the beat
-{
-  static uint32_t lastBeatTime = 0;
-  static boolean  inBeat = false;
-  uint16_t  beatTime;
-
-  beatTime = 60000/SMF.getTempo();    // msec/beat = ((60sec/min)*(1000 ms/sec))/(beats/min)
-  if (!inBeat)
-  {
-    if ((millis() - lastBeatTime) >= beatTime)
-    {
-      lastBeatTime = millis();
-      digitalWrite(BEAT_LED, HIGH);
-      inBeat = true;
-    }
-  }
-  else
-  {
-    if ((millis() - lastBeatTime) >= 100)	// keep the flash on for 100ms only
-    {
-      digitalWrite(BEAT_LED, LOW);
-      inBeat = false;
-    }
-  }
+  // show the available commands
+  handlerHelp(nullptr);
 }
 
 void loop(void)
 {
-  static enum { S_IDLE, S_PLAYING, S_END, S_WAIT_BETWEEN } state = S_IDLE;
-  static uint16_t currTune = ARRAY_SIZE(tuneList);
-  static uint32_t timeStart;
+  if (!SMF.isEOF()) 
+    SMF.getNextEvent(); // Play MIDI data
 
-  switch (state)
-  {
-  case S_IDLE:    // now idle, set up the next tune
-    {
-      int err;
-
-      DEBUGS("\nS_IDLE");
-
-      digitalWrite(READY_LED, LOW);
-      digitalWrite(SMF_ERROR_LED, LOW);
-
-      currTune++;
-      if (currTune >= ARRAY_SIZE(tuneList))
-        currTune = 0;
-
-      // use the next file name and play it
-      DEBUG("\nFile: ", tuneList[currTune]);
-      err = SMF.load(tuneList[currTune]);
-      if (err != MD_MIDIFile::E_OK)
-      {
-        DEBUG(" - SMF load Error ", err);
-        digitalWrite(SMF_ERROR_LED, HIGH);
-        timeStart = millis();
-        state = S_WAIT_BETWEEN;
-        DEBUGS("\nWAIT_BETWEEN");
-      }
-      else
-      {
-        DEBUGS("\nS_PLAYING");
-        state = S_PLAYING;
-      }
-    }
-    break;
-
-  case S_PLAYING: // play the file
-    DEBUGS("\nS_PLAYING");
-    if (!SMF.isEOF())
-    {
-      if (SMF.getNextEvent())
-        tickMetronome();
-    }
-    else
-      state = S_END;
-    break;
-
-  case S_END:   // done with this one
-    DEBUGS("\nS_END");
-    SMF.close();
-    midiSilence();
-    timeStart = millis();
-    state = S_WAIT_BETWEEN;
-    DEBUGS("\nWAIT_BETWEEN");
-    break;
-
-  case S_WAIT_BETWEEN:    // signal finished with a dignified pause
-    digitalWrite(READY_LED, HIGH);
-    if (millis() - timeStart >= WAIT_DELAY)
-      state = S_IDLE;
-    break;
-
-  default:
-    state = S_IDLE;
-    break;
-  }
+  CP.run();  // process the CLI
 }
