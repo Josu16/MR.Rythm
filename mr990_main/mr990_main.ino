@@ -45,6 +45,12 @@ bool printMidiStream = false;   // flag to print the real time midi stream
 SDFAT SD;
 MD_MIDIFile SMF;
 
+// switches
+const int start = 8;
+const int stopReset = 9;
+
+int value;
+
 void midiCallback(midi_event *pev)
 // Called by the MIDIFile library when a file event needs to be processed
 // thru the midi communications interface.
@@ -315,6 +321,10 @@ void setup(void) // This is run once at power on
 
   // show the available commands
   handlerHelp(nullptr);
+
+  // Configurar switches
+  pinMode(start, INPUT);
+  pinMode(stopReset, INPUT);
 }
 
 void loop(void)
@@ -323,4 +333,10 @@ void loop(void)
     SMF.getNextEvent(); // Play MIDI data
 
   CP.run();  // process the CLI
+  value = digitalRead(start);  //lectura digital de pin
+ 
+  //mandar mensaje a puerto serie en función del valor leido
+  if (value == HIGH) {
+      CONSOLE.println("Encendido");
+  }
 }
