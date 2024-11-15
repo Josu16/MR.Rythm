@@ -10,6 +10,8 @@
 IntervalTimer myTimer;
 volatile uint32_t currentTick = 0;  // Contador de ticks
 volatile uint16_t bpm = 120;        // Tempo de la secuencia
+uint16_t lastBpm = bpm;             // Variable para detectar cambios en el BPM para la actualización del tempo
+
 
 // Definimos los tipos de eventos MIDI
 #define NOTE_ON  0x90
@@ -31,9 +33,22 @@ struct MidiEvent {
 // Ejemplo de ritmo de batería
 MidiEvent drumPattern[] = {
     {NOTE_ON, KICK_DRUM, 100, 0},     // Bombo en el primer tick
-    {NOTE_OFF, KICK_DRUM, 100, 48},   // Apagar bombo en el tick 48
-    {NOTE_ON, SNARE_DRUM, 100, 96},   // Caja en el segundo cuarto de nota
-    {NOTE_OFF, SNARE_DRUM, 100, 144}, // Apagar caja en el tick 144
+    {NOTE_OFF, KICK_DRUM, 100, 8},   // Apagar bombo en el tick 48
+
+    {NOTE_ON, KICK_DRUM, 83, 192},   // Caja en el segundo cuarto de nota
+    {NOTE_OFF, KICK_DRUM, 83, 200}, // Apagar caja en el tick 144
+    
+    // {NOTE_ON, SNARE_DRUM, 100, 96},   // Caja en el segundo cuarto de nota
+    // {NOTE_OFF, SNARE_DRUM, 100, 104}, // Apagar caja en el tick 144
+    // {NOTE_ON, SNARE_DRUM, 100, 288},   // Caja en el segundo cuarto de nota
+    // {NOTE_OFF, SNARE_DRUM, 100, 304}, // Apagar caja en el tick 144
+
+    // {NOTE_ON, KICK_DRUM, 83, 144},   // Caja en el segundo cuarto de nota
+    // {NOTE_OFF, KICK_DRUM, 83, 104}, // Apagar caja en el tick 144
+    // {NOTE_ON, KICK_DRUM, 83, 144},   // Caja en el segundo cuarto de nota
+    // {NOTE_OFF, KICK_DRUM, 83, 104}, // Apagar caja en el tick 144
+    // {NOTE_ON, KICK_DRUM, 83, 144},   // Caja en el segundo cuarto de nota
+    // {NOTE_OFF, KICK_DRUM, 83, 104}, // Apagar caja en el tick 144
     // {NOTE_ON, HI_HAT, 100, 0},        // Hi-hat al inicio
     // {NOTE_OFF, HI_HAT, 100, 24},      // Apagar hi-hat en el tick 24
     // {NOTE_ON, HI_HAT, 100, 48},       // Hi-hat en el segundo tick
@@ -61,6 +76,12 @@ size_t eventIndex = 0;  // Índice del evento actual
 #define RS_1 34     // Reset para la segunda pantalla
 #define RSE_1 33    // Registro de datos/comando para la segunda pantalla
 
+const int ledPin = 14;
+
+// Variables para el LED
+volatile bool ledState = false;     // Estado actual del LED
+volatile uint32_t ledOffTick = 0;   // Tick en el que se apagará el LED
+
 // Configura las pantallas usando Hardware SPI en lugar de Software SPI
 U8G2_ST7565_ERC12864_1_4W_HW_SPI u8g2(U8G2_R0, CS, RS, RSE);
 U8G2_ST7565_ERC12864_1_4W_HW_SPI u8g2_1(U8G2_R0, CS_1, RS_1, RSE_1);
@@ -84,6 +105,19 @@ RotaryEncoder encoder2(pinA2, pinB2, position2);
 
 void onTimer() {
     // Esta función se ejecuta cada 5208 microsegundos
+    
+    // Control del LED para cada nota negra (96 ticks) y semi-corchea (24 ticks)
+    if (currentTick % 96 == 0) {
+        // Encender el LED en cada nota negra
+        digitalWrite(ledPin, HIGH);
+        ledState = true;
+        ledOffTick = currentTick + 24; // Apagar el LED después de 24 ticks
+    }
+    if (ledState && currentTick >= ledOffTick) {
+        // Apagar el LED después de 24 ticks
+        digitalWrite(ledPin, LOW);
+        ledState = false;
+    }
 
     // Verifica si el evento actual debe reproducirse en el tick actual
     if (eventIndex < patternLength && drumPattern[eventIndex].tick == currentTick) {
@@ -109,7 +143,13 @@ void onTimer() {
 // Función para actualizar el timer en función del BPM
 void updateTimerInterval() {
     uint32_t interval = 60000000 / (bpm * 96); // Intervalo en microsegundos
-    myTimer.begin(onTimer, interval);          // Actualiza el timer con el nuevo intervalo
+     // Detén el timer antes de actualizar el intervalo
+    myTimer.end();
+    // Reinicia el timer con el nuevo intervalo
+    myTimer.begin(onTimer, interval);
+    // Muestra el intervalo calculado en la consola
+    Serial.print("Intervalo actualizado: ");
+    Serial.println(interval);
 }
 
 void setup() {
@@ -133,26 +173,36 @@ void setup() {
     Serial.println("Secuenciador MIDI Iniciado...");
 
     pinMode(14, OUTPUT);
+
+    encoder1.setValue(bpm);
+    encoder2.setValue(92);
 }
 
 void loop() {
     // Otras tareas, por ejemplo, ajustar el tempo o controlar la interfaz
     // // Pantalla 1
-  encoder1.update();
+  bpm = encoder1.update();
   encoder2.update();
+
+  // Serial.println(bpm);
+  // Serial.println(lastBpm);
+
+  // Solo actualiza el timer si el BPM ha cambiado
+  if (bpm != lastBpm) {
+    updateTimerInterval(); // Ajusta el tempo llamando a la función de actualización del timer
+    lastBpm = bpm;         // Actualiza el valor de BPM previo
+  }
 
   u8g2.firstPage();
   do {
     u8g2.setFont(u8g2_font_luBS10_tf);
     u8g2.drawFrame(0, 0, 128, 64);
     u8g2.setCursor(6, 25);
-    u8g2.print("HOA mundo ¡");
+    u8g2.print(position2);
     u8g2.drawLine(6, 35, 120, 35);
     u8g2.setCursor(14, 55);
     u8g2.print("BUENOS DÍAS");
   } while (u8g2.nextPage());
-  // digitalWrite(14, HIGH);  // Enciende el LED
-  // delay(1000);                  // Espera 1000 ms
 
   // Pantalla 2
   u8g2_1.firstPage();
@@ -165,7 +215,6 @@ void loop() {
     u8g2_1.setCursor(14, 55);
     u8g2_1.print("BUENOS DÍAS");
   } while (u8g2_1.nextPage());
-  // digitalWrite(14, LOW);   // Apaga el LED
-  // delay(1000);                  // Espera 1000 ms
+
 
 }

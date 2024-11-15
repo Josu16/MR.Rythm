@@ -8,7 +8,9 @@
 class RotaryEncoder {
 public:
     RotaryEncoder(int pinA, int pinB, long &position, unsigned long debounceDelay = 5);
-    void update();
+    long update();
+    void setValue(int newValue);
+    // long RotaryEncoder::getValue();
 
 private:
     Encoder encoder;
