@@ -4,6 +4,8 @@
 #include <IntervalTimer.h>
 #include <IntervalTimer.h>
 
+// ----------------------------- SEQUENCER DECLARATION VARIABLES -----------------------------
+
 IntervalTimer myTimer;
 volatile uint32_t currentTick = 0;  // Contador de ticks
 volatile uint16_t bpm = 120;        // Tempo de la secuencia
@@ -17,7 +19,7 @@ volatile uint16_t bpm = 120;        // Tempo de la secuencia
 #define SNARE_DRUM 38
 #define HI_HAT 42
 
-// Estructura para eventos MIDI
+// Estructura para secuencias de eventos MIDI
 struct MidiEvent {
     uint8_t type;     // NOTE_ON o NOTE_OFF
     uint8_t note;     // Nota MIDI (ej. 36 = KICK_DRUM)
@@ -45,6 +47,23 @@ MidiEvent drumPattern[] = {
 const size_t patternLength = sizeof(drumPattern) / sizeof(drumPattern[0]);
 size_t eventIndex = 0;  // Índice del evento actual
 
+// ----------------------------- END SEQUENCER DECLARATION VARIABLES -----------------------------
+
+
+// ----------------------------- UI DECLARATION VARIABLES -----------------------------
+// Pines SPI de hardware en la Teensy 4.1
+#define CS 10    // Chip Select para la primera pantalla
+#define RS 9     // Reset para la primera pantalla
+#define RSE 8    // Registro de datos/comando para la primera pantalla
+
+#define CS_1 35    // Chip Select para la segunda pantalla
+#define RS_1 34     // Reset para la segunda pantalla
+#define RSE_1 33    // Registro de datos/comando para la segunda pantalla
+
+// Configura las pantallas usando Hardware SPI en lugar de Software SPI
+U8G2_ST7565_ERC12864_1_4W_HW_SPI u8g2(U8G2_R0, CS, RS, RSE);
+U8G2_ST7565_ERC12864_1_4W_HW_SPI u8g2_1(U8G2_R0, CS_1, RS_1, RSE_1);
+// ----------------------------- END UI DECLARATION VARIABLES -----------------------------
 void onTimer() {
     // Esta función se ejecuta cada 5208 microsegundos
 
@@ -76,6 +95,15 @@ void updateTimerInterval() {
 }
 
 void setup() {
+    // Inicialización de ambas pantallas
+    u8g2.begin();
+    u8g2.setContrast(10);
+    u8g2.enableUTF8Print();
+
+    u8g2_1.begin();
+    u8g2_1.setContrast(10);
+    u8g2_1.enableUTF8Print();
+
     Serial7.begin(31250);     // Serial MIDI a 31,250 baudios
     Serial.begin(9600);       // Serial para depuración
     while (!Serial) {
@@ -91,8 +119,31 @@ void setup() {
 
 void loop() {
     // Otras tareas, por ejemplo, ajustar el tempo o controlar la interfaz
+    // // Pantalla 1
+  u8g2.firstPage();
+  do {
+    u8g2.setFont(u8g2_font_luBS10_tf);
+    u8g2.drawFrame(0, 0, 128, 64);
+    u8g2.setCursor(6, 25);
+    u8g2.print("HOA mundo ¡");
+    u8g2.drawLine(6, 35, 120, 35);
+    u8g2.setCursor(14, 55);
+    u8g2.print("BUENOS DÍAS");
+  } while (u8g2.nextPage());
   digitalWrite(14, HIGH);  // Enciende el LED
-  delay(1000);                  // Espera 500 ms
+  delay(1000);                  // Espera 1000 ms
+
+  // Pantalla 2
+  u8g2_1.firstPage();
+  do {
+    u8g2_1.setFont(u8g2_font_luBS10_tf);
+    u8g2_1.drawFrame(0, 0, 128, 64);
+    u8g2_1.setCursor(6, 25);
+    u8g2_1.print(bpm);
+    u8g2_1.drawLine(6, 35, 120, 35);
+    u8g2_1.setCursor(14, 55);
+    u8g2_1.print("BUENOS DÍAS");
+  } while (u8g2_1.nextPage());
   digitalWrite(14, LOW);   // Apaga el LED
-  delay(1000);                  // Espera 500 ms
+  delay(1000);                  // Espera 1000 ms
 }
