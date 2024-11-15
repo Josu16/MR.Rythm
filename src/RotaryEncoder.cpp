@@ -26,11 +26,11 @@ long RotaryEncoder::update() {
     //         currentPosition = 260;
     //         encoder.write(260);
     //     }
-    if (currentPosition != lastPosition && (millis() - lastDebounceTime) > debounceDelay) {
-        position = currentPosition;
-        lastPosition = currentPosition;
-        lastDebounceTime = millis();
+    // if (currentPosition != lastPosition && (millis() - lastDebounceTime) > debounceDelay) {
+    //     position = currentPosition;
+    //     lastPosition = currentPosition;
+    //     lastDebounceTime = millis();
         
-    }
-    return position;
+    // }
+    return currentPosition;
 }
