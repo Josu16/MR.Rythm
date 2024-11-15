@@ -9,8 +9,9 @@
 // // ----------------------------- SEQUENCER DECLARATION VARIABLES -----------------------------
 const int pinA1Re = 2;
 const int pinB1Re = 3;
+const int pinFw = 41;
 volatile long tempo = 120;
-ABRSequencer sequencer(pinA1Re, pinB1Re, tempo);
+ABRSequencer sequencer(pinA1Re, pinB1Re, pinFw, tempo);
 // // ----------------------------- END SEQUENCER DECLARATION VARIABLES -----------------------------
 
 
@@ -38,6 +39,7 @@ long position2 = 0;
 RotaryEncoder encoder2(pinA2, pinB2, position2);
 
 // ----------------------------- END NAVIGATION DECLARATION VARIABLES -----------------------------
+// zona temporal
 
 void setup() {
     // Inicialización de ambas pantallas
@@ -60,12 +62,14 @@ void setup() {
     
     encoder2.setValue(92);
 
+    // zona temporal
 }
 
 void loop() {
   // Otras tareas, por ejemplo, ajustar el tempo o controlar la interfaz
   position2 = encoder2.update();
   tempo = sequencer.cheeckBpm();
+  sequencer.update();
 
   // Pantalla 1
   u8g2.firstPage();
@@ -90,7 +94,4 @@ void loop() {
     u8g2_1.setCursor(14, 55);
     u8g2_1.print("BUENOS DÍAS");
   } while (u8g2_1.nextPage());
-
-  // delay(3000);
-
 }

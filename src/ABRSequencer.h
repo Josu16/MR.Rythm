@@ -36,11 +36,19 @@ class ABRSequencer {
         // Configuraión de variables para la reproducción
         size_t patternLength;
         size_t eventIndex; // Índice del evento actual
+        volatile bool isPlaying;
 
         // Controles
         
         long positionRe = 0; // Posición del rotary encoder
         RotaryEncoder bpmRe;
+        
+        int pinFw;
+        
+        volatile bool footswitchState;
+        volatile bool footswitchChanged;
+        volatile unsigned long lastDebounceTime;
+        const unsigned long debounceDelay = 50;  // Tiempo de debounce en milisegundos
 
 
         // Indicadores
@@ -53,13 +61,20 @@ class ABRSequencer {
         // Referencia estática a la instancia actual
         static ABRSequencer* instance;
 
+        // footswitches
+        static void fwISR();
+        void handleFootswitchInterrupt();
+
+
     public:
-        ABRSequencer(int pinARe, int pinbRe, long bpm);
+        ABRSequencer(int pinARe, int pinbRe, int pinFw, long bpm);
         void beginSequencer();
         void onTimer();
         void updateTimerInterval(); // variable que probablememte sirva
         // long getBpm();
         long cheeckBpm();
+        // Updatin all things
+        void update(); // Método para manejar actualizaciones en el loop principal
 };
 
 #endif
