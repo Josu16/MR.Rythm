@@ -51,7 +51,7 @@ class ABRSequencer {
         volatile bool footswitchState;
         volatile bool footswitchChanged;
         volatile unsigned long lastDebounceTime;
-        const unsigned long debounceDelay = 50;  // Tiempo de debounce en milisegundos
+        const unsigned long debounceDelay = 100;  // Tiempo de debounce en milisegundos
 
 
         // Indicadores
