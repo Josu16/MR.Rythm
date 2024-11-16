@@ -3,6 +3,23 @@
 
 ABRSequencer* ABRSequencer::instance = nullptr;
 
+// Definición del patrón de eventos
+MidiEvent drumPattern[] = {
+    // Bombo
+    {NOTE_ON, KICK_DRUM, 100, 0},
+    {NOTE_OFF, KICK_DRUM, 0, 8},
+
+    // Caja
+    {NOTE_ON, SNARE_DRUM, 100, 96},
+    {NOTE_OFF, SNARE_DRUM, 0, 104},
+
+    // Hi-Hat
+    {NOTE_ON, HI_HAT, 100, 48},
+    {NOTE_OFF, HI_HAT, 0, 56},
+
+    // Añade más eventos según sea necesario...
+};
+
 ABRSequencer::ABRSequencer(int pinARe, int pinbRe, int pinFw, long bpm)
     : bpmRe(pinARe, pinbRe, bpm)
 {
@@ -24,14 +41,7 @@ ABRSequencer::ABRSequencer(int pinARe, int pinbRe, int pinFw, long bpm)
     lastDebounceTime = 0;
     attachInterrupt(digitalPinToInterrupt(pinFw), fwISR, CHANGE);
 
-    /// Inicialización del drumPattern
-    drumPattern[0] = {NOTE_ON, KICK_DRUM, 100, 0};    // Bombo en el primer tick
-    drumPattern[1] = {NOTE_OFF, KICK_DRUM, 100, 8};   // Apagar bombo en el tick 48
-    drumPattern[2] = {NOTE_ON, KICK_DRUM, 83, 192};   // Caja en el segundo cuarto de nota
-    drumPattern[3] = {NOTE_OFF, KICK_DRUM, 83, 200};  // Apagar caja en el tick 144
-
     patternLength = sizeof(drumPattern) / sizeof(drumPattern[0]);
-    eventIndex = 0;  // Índice del evento actual
 
     // Inicialización MIDI
     Serial7.begin(31250);     // Serial MIDI a 31,250 baudios
@@ -43,6 +53,27 @@ ABRSequencer::ABRSequencer(int pinARe, int pinbRe, int pinFw, long bpm)
     // Vincula la instancia actual a la referencia estática
     instance = this;
 
+    // TEMPORAL
+    initializePattern();
+}
+
+void ABRSequencer::initializePattern() {
+    // Limpiar eventList
+    for (int i = 0; i < totalTicks; i++) {
+        eventList[i].clear();
+    }
+
+    // Agregar eventos al eventList
+    for (unsigned int i = 0; i < patternLength; i++) {
+        MidiEvent event = drumPattern[i];
+        int tick = drumPattern[i].tick;
+
+        if (tick >= 0 && tick < totalTicks) {
+            eventList[tick].push_back(event);
+        } else {
+            Serial.println("tick fuera de rango");
+        }
+    }
 }
 
 void ABRSequencer::beginSequencer() {
@@ -68,9 +99,9 @@ void ABRSequencer::timerCallback() {
 
 void ABRSequencer::onTimer() {
     // Esta función se ejecuta cada 5208 microsegundos (cuando el tempo está a 120)
-    
+
     if (!isPlaying){
-        
+
     }
     else {
         // Control del LED para cada nota negra (96 ticks) y semi-corchea (24 ticks)
@@ -86,24 +117,18 @@ void ABRSequencer::onTimer() {
             playledState = false;
         }
 
-        // Verifica si el evento actual debe reproducirse en el tick actual
-        if (eventIndex < patternLength && this->drumPattern[eventIndex].tick == currentTick) {
-            MidiEvent event = drumPattern[eventIndex];
-            
-            // Enviar el evento MIDI en Serial7 (puerto MIDI)
+        // Procesar todos los eventos en el tick actual
+        for (const MidiEvent& event : eventList[currentTick]) {
+            // Enviar el evento MIDI
             Serial7.write(event.type);
             Serial7.write(event.note);
             Serial7.write(event.velocity);
-
-            // Avanza al siguiente evento
-            eventIndex++;
         }
         currentTick++;  // Incrementa el contador de ticks
 
         // Reinicia el patrón después de 384 ticks (4/4 en 96 PPQN)
         if (currentTick >= 384) {
             currentTick = 0;  // Reinicia los ticks
-            eventIndex = 0;   // Reinicia el índice de eventos
         }
     }
 }
@@ -138,6 +163,10 @@ void ABRSequencer::update() {
         if ((currentTime - lastDebounceTime) > debounceDelay) {
             if (footswitchState == LOW) {
                 isPlaying = !isPlaying;
+                
+                // UBICACIÓN TEMPORAL
+                currentTick = 0;  // Reinicia los ticks
+                digitalWrite(playLed, LOW);
             }
             lastDebounceTime = currentTime;
         }
