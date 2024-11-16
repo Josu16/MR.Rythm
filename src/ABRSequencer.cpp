@@ -7,17 +7,62 @@ ABRSequencer* ABRSequencer::instance = nullptr;
 MidiEvent drumPattern[] = {
     // Bombo
     {NOTE_ON, KICK_DRUM, 100, 0},
-    {NOTE_OFF, KICK_DRUM, 0, 8},
+    {NOTE_OFF, KICK_DRUM, 0, 4},
 
-    // Caja
-    {NOTE_ON, SNARE_DRUM, 100, 96},
-    {NOTE_OFF, SNARE_DRUM, 0, 104},
+    {NOTE_ON, KICK_DRUM, 88, 144},
+    {NOTE_OFF, KICK_DRUM, 0, 148},
+
+    {NOTE_ON, KICK_DRUM, 109, 192},
+    {NOTE_OFF, KICK_DRUM, 0, 196},
+
+    // // Caja
+    {NOTE_ON, SNARE_DRUM, 90, 96},
+    {NOTE_OFF, SNARE_DRUM, 0, 100},
+
+    {NOTE_ON, SNARE_DRUM, 104, 288},
+    {NOTE_OFF, SNARE_DRUM, 0, 304},
 
     // Hi-Hat
-    {NOTE_ON, HI_HAT, 100, 48},
-    {NOTE_OFF, HI_HAT, 0, 56},
+    {NOTE_ON, HI_HAT, 108, 0},
+    {NOTE_OFF, HI_HAT, 0, 4},
 
-    // Añade más eventos según sea necesario...
+    {NOTE_ON, HI_HAT, 95, 48},
+    {NOTE_OFF, HI_HAT, 0, 52},
+
+    {NOTE_ON, HI_HAT, 111, 96},
+    {NOTE_OFF, HI_HAT, 0, 100},
+
+    {NOTE_ON, HI_HAT, 92, 144},
+    {NOTE_OFF, HI_HAT, 0, 148},
+
+    {NOTE_ON, HI_HAT, 104, 192},
+    {NOTE_OFF, HI_HAT, 0, 200},
+    {NOTE_ON, HI_HAT, 91, 240},
+    {NOTE_OFF, HI_HAT, 0, 244},
+    {NOTE_ON, HI_HAT, 105, 288},
+    {NOTE_OFF, HI_HAT, 0, 304},
+    {NOTE_ON, HI_HAT, 99, 336},
+    {NOTE_OFF, HI_HAT, 0, 340},
+
+    // cencerro
+    {NOTE_ON, 56, 108, 0},
+    {NOTE_OFF, 56, 0, 4},
+    {NOTE_ON, 56, 97, 96},
+    {NOTE_OFF, 56, 0, 100},
+    {NOTE_ON, 56, 114, 192},
+    {NOTE_OFF, 56, 0, 196},
+    {NOTE_ON, 56, 110, 288},
+    {NOTE_OFF, 56, 0, 302},
+
+    // ride
+    {NOTE_ON, 51, 108, 0},
+    {NOTE_OFF, 51, 0, 4},
+    {NOTE_ON, 51, 97, 96},
+    {NOTE_OFF, 51, 0, 100},
+    {NOTE_ON, 51, 114, 192},
+    {NOTE_OFF, 51, 0, 196},
+    {NOTE_ON, 51, 110, 288},
+    {NOTE_OFF, 51, 0, 302},
 };
 
 ABRSequencer::ABRSequencer(int pinARe, int pinbRe, int pinFw, long bpm)
