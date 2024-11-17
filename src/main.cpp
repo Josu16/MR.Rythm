@@ -118,8 +118,6 @@ void draw_dotted_line(U8G2 &u8g2, int x1, int y1, int x2, int y2) {
     }
 }
 
-
-
 void actualizarTexto() {
   if (patronIndex < 1 || patronIndex >= totalTextos) {
     patronIndex = 1; // Asegura que el índice esté dentro del rango válido
@@ -129,6 +127,24 @@ void actualizarTexto() {
   // xOffset = 0;
 }
 int ultimopatronIndex = -1;
+
+volatile uint32_t currentStep = 0; // Posición actual del paso (96 PPQN)
+const int seqLength = 384; // Longitud de la secuencia (en pasos)
+const int screenWidth = 117;
+int triangleX = 10; // Posición actual del triángulo
+const int lineY = 42; // Y de la línea horizontal
+
+unsigned long lastUpdateTime = 0; // Última vez que se actualizó el triángulo
+const unsigned long updateInterval = 190; // Intervalo en ms para actualizar
+
+void updateTrianglePosition() {
+  unsigned long currentTime = millis();
+  if (currentTime - lastUpdateTime >= updateInterval) {
+    lastUpdateTime = currentTime;
+    // Actualiza la posición del triángulo
+    triangleX = map(currentStep, 0, seqLength, 10, screenWidth);
+  }
+}
 
 void setup() {
     // Inicialización de ambas pantallas
@@ -230,13 +246,19 @@ void loop() {
     xOffset = (anchoPantalla - anchoTexto) / 2;
   }
 
+
+  currentStep = sequencer.getCurrentTick();
+  // delay(500);
+  updateTrianglePosition();
+  // Serial.println(triangleX);
+
   u8g2_1.firstPage();
   do {
     u8g2_1.setFont(u8g2_font_crox4t_tf); // opción má acertada
 
 
     // NOMBRE DEL PATRÓN (centrado o deslizante)
-    u8g2_1.setCursor(xOffset, 36); // Cambia "55" si necesitas ajustar la posición vertical
+    u8g2_1.setCursor(xOffset, 35); // Cambia "55" si necesitas ajustar la posición vertical
     u8g2_1.print(patrones[patronIndex]);
 
     // número del patrón
@@ -246,10 +268,11 @@ void loop() {
     // Formateamos el número con ceros a la izquierda
     snprintf(buffer, sizeof(buffer), "%03d", patronIndex);
     u8g2_1.print(buffer);
-    // u8g2_1.drawLine(54, 9, 127, 9);
-    draw_dotted_line(u8g2_1, 54, 9, 127, 9);
 
     // Indicador de compás rítmico
+    u8g2_1.drawBox(53, 0, 74, 9); // Dibuja un rectángulo negro donde estará el text
+    u8g2_1.setDrawColor(0); // Color de dibujo blanc
+    // draw_dotted_line(u8g2_1, 54, 9, 127, 9);
     // u8g2_1.setFont(u8g2_font_squeezed_b7_tr); // ES UNA buena fuente pero no me convence mucho aún
     u8g2_1.setFont(u8g2_font_squeezed_b7_tr);
     u8g2_1.setCursor(110, 8);
@@ -265,23 +288,53 @@ void loop() {
     u8g2_1.setFont(u8g2_font_timR08_tn);
     u8g2_1.setCursor(94, 8);
     u8g2_1.print("4");
+    u8g2_1.setDrawColor(1); // Color de dibujo negro
+
+    u8g2_1.setFont(u8g2_font_04b_03b_tr);
+    u8g2_1.setCursor(73, 17);
+    u8g2_1.print("001 - 1");
+
+    // u8g2_1.drawBox(53, 0, 74, 9); // Dibuja un rectángulo negro donde estará el text
+    // u8g2_1.setCursor(94, 17);
+    // u8g2_1.print("3");
 
     // linea divisora
-    u8g2_1.drawLine(0, 43, 127, 43);
+    u8g2_1.drawTriangle(
+      triangleX, lineY,    // Vértice superior
+      triangleX - 3, lineY - 3,    // Esquina inferior izquierda
+      triangleX + 3, lineY - 3     // Esquina inferior derecha
+    );
+    u8g2_1.drawLine(10, 43, 117, 43);
+    u8g2_1.drawPixel(10, 44);
+    u8g2_1.drawPixel(117, 44);
+    u8g2_1.drawLine(10, 45, 117, 45);
     // u8g2_1.drawBox(0, 44, 15, 20); // Dibuja un recuadro (x, y, ancho, alto)
     // u8g2_1.setFont(u8g2_font_6x13B_tf); // FUENTE MUY JUNTA
-    // u8g2_1.setFont(u8g2_font_koleeko_tn); //  fuente muy buena para números
-    // u8g2_1.setFont(u8g2_font_t0_17b_tf); // posible fuente para quedarse
-    u8g2_1.setFont(u8g2_font_profont17_tf); // FINAL
-    u8g2_1.setCursor(0, 57);
-    u8g2_1.print(tempo);
+
+    // u8g2_1.drawBox(47, 46, 28, 18); // Dibuja un rectángulo negro donde estará el text
+
     u8g2_1.setFont(u8g2_font_tiny5_tf);
-    u8g2_1.setCursor(0, 64);
+    u8g2_1.setCursor(48, 64);
     u8g2_1.print("TIEMPO");
+    
+    u8g2_1.setFont(u8g2_font_prospero_bold_nbp_tn);
+    // u8g2_1.setFont(u8g2_font_Born2bSportyV2_tr);
+    u8g2_1.setCursor(51, 57);
+    // u8g2_1.setFont(u8g2_font_t0_17b_tf); // posible fuente para quedarse
+    // u8g2_1.setFont(u8g2_font_profont17_tf); // FINAL
+    // u8g2_1.setFont(u8g2_font_koleeko_tn); //  fuente muy buena para números
+    u8g2_1.print(tempo);
+    // u8g2_1.drawLine(4, 64, 20, 127)
 
 
 
-    // u8g2_1.drawLine(4, 64, 20, 127);
+
+
+    // u8g2_1.setFont(u8g2_font_Born2bSportyV2_tr);
+    // u8g2_1.setCursor(4, 60);
+    // u8g2_1.print("01 - 1");
+
+
   } while (u8g2_1.nextPage());
 
 }

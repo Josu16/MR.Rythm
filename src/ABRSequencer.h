@@ -51,7 +51,7 @@ class ABRSequencer {
         volatile bool footswitchState;
         volatile bool footswitchChanged;
         volatile unsigned long lastDebounceTime;
-        const unsigned long debounceDelay = 100;  // Tiempo de debounce en milisegundos
+        const unsigned long debounceDelay = 200;  // Tiempo de debounce en milisegundos
 
 
         // Indicadores
@@ -79,6 +79,7 @@ class ABRSequencer {
         // Updatin all things
         void update(); // Método para manejar actualizaciones en el loop principal
         void initializePattern();
+        uint32_t getCurrentTick();
 };
 
 #endif

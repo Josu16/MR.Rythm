@@ -218,3 +218,7 @@ void ABRSequencer::update() {
         footswitchChanged = false;
     }
 }
+
+uint32_t ABRSequencer::getCurrentTick() {
+    return currentTick;
+}
