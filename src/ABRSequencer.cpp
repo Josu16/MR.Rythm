@@ -65,7 +65,7 @@ MidiEvent drumPattern[] = {
     {NOTE_OFF, 51, 0, 302},
 };
 
-ABRSequencer::ABRSequencer(int pinARe, int pinbRe, int pinFw, long bpm)
+ABRSequencer::ABRSequencer(int pinARe, int pinbRe, int pinFw, long bpm, volatile uint32_t *triangleX)
     : bpmRe(pinARe, pinbRe, bpm)
 {
     // secuenciación
@@ -100,6 +100,8 @@ ABRSequencer::ABRSequencer(int pinARe, int pinbRe, int pinFw, long bpm)
 
     // TEMPORAL
     initializePattern();
+
+    this -> triangleX = triangleX;
 }
 
 void ABRSequencer::initializePattern() {
@@ -169,6 +171,8 @@ void ABRSequencer::onTimer() {
             Serial7.write(event.note);
             Serial7.write(event.velocity);
         }
+        updateTrianglePosition();
+
         currentTick++;  // Incrementa el contador de ticks
 
         // Reinicia el patrón después de 384 ticks (4/4 en 96 PPQN)
@@ -221,4 +225,11 @@ void ABRSequencer::update() {
 
 uint32_t ABRSequencer::getCurrentTick() {
     return currentTick;
+}
+
+void ABRSequencer::updateTrianglePosition() {
+  if (currentTick % 24 == 0) { // cambia la posición del triángulo cada Semicorchea.
+    // Actualiza la posición del triángulo
+    *triangleX = map(currentTick, 0, 384, 10, 117);
+  }
 }

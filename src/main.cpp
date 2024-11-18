@@ -11,7 +11,7 @@ const int pinA1Re = 2;
 const int pinB1Re = 3;
 const int pinFw = 41;
 volatile long tempo = 120;
-ABRSequencer sequencer(pinA1Re, pinB1Re, pinFw, tempo);
+
 // // ----------------------------- END SEQUENCER DECLARATION VARIABLES -----------------------------
 
 
@@ -131,20 +131,13 @@ int ultimopatronIndex = -1;
 volatile uint32_t currentStep = 0; // Posición actual del paso (96 PPQN)
 const int seqLength = 384; // Longitud de la secuencia (en pasos)
 const int screenWidth = 117;
-int triangleX = 10; // Posición actual del triángulo
+volatile uint32_t triangleX = 10; // Posición actual del triángulo
 const int lineY = 42; // Y de la línea horizontal
 
 unsigned long lastUpdateTime = 0; // Última vez que se actualizó el triángulo
 const unsigned long updateInterval = 190; // Intervalo en ms para actualizar
 
-void updateTrianglePosition() {
-  unsigned long currentTime = millis();
-  if (currentTime - lastUpdateTime >= updateInterval) {
-    lastUpdateTime = currentTime;
-    // Actualiza la posición del triángulo
-    triangleX = map(currentStep, 0, seqLength, 10, screenWidth);
-  }
-}
+ABRSequencer sequencer(pinA1Re, pinB1Re, pinFw, 120, &triangleX);
 
 void setup() {
     // Inicialización de ambas pantallas
@@ -245,12 +238,6 @@ void loop() {
     // Si no requiere animación, calcula la posición centrada
     xOffset = (anchoPantalla - anchoTexto) / 2;
   }
-
-
-  currentStep = sequencer.getCurrentTick();
-  // delay(500);
-  updateTrianglePosition();
-  // Serial.println(triangleX);
 
   u8g2_1.firstPage();
   do {

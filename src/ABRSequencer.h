@@ -59,6 +59,8 @@ class ABRSequencer {
         volatile bool playledState = false;     // Estado actual del LED
         volatile uint32_t playLedOffTick = 0;   // Tick en el que se apagará el LED
 
+        volatile uint32_t *triangleX;
+
         // Función estática para el timer
         static void timerCallback();
         // Referencia estática a la instancia actual
@@ -70,7 +72,7 @@ class ABRSequencer {
 
 
     public:
-        ABRSequencer(int pinARe, int pinbRe, int pinFw, long bpm);
+        ABRSequencer(int pinARe, int pinbRe, int pinFw, long bpm, volatile uint32_t *triangleX);
         void beginSequencer();
         void onTimer();
         void updateTimerInterval(); // variable que probablememte sirva
@@ -80,6 +82,7 @@ class ABRSequencer {
         void update(); // Método para manejar actualizaciones en el loop principal
         void initializePattern();
         uint32_t getCurrentTick();
+        void updateTrianglePosition();
 };
 
 #endif
