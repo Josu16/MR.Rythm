@@ -253,7 +253,7 @@ void loop() {
     u8g2_1.setCursor(-1, 18);
     char buffer[4]; // 3 dígitos + terminador nulo
     // Formateamos el número con ceros a la izquierda
-    snprintf(buffer, sizeof(buffer), "%03d", patronIndex);
+    snprintf(buffer, sizeof(buffer), "%03ld", patronIndex);
     u8g2_1.print(buffer);
 
     // Indicador de compás rítmico
