@@ -1,8 +1,9 @@
 #include <MidiParser.h>
 #include <SdFat.h>
 
-MidiParser::MidiParser(const char *filename)
+MidiParser::MidiParser(const char *filename, std::vector<MidiEvent>& parentEvents): events(parentEvents)
 {
+    numRealEvents = 0;
     if (!sd.begin(SdioConfig()))
     {
         Serial.println("Error inicializando la tarjeta SD");
@@ -121,8 +122,6 @@ void MidiParser::parseTrack()
         uint32_t deltaTime = readVLQ();
         uint8_t midiByte;
 
-        Serial.print("Delta time ");
-        Serial.println(deltaTime);
         bytesRead += getVLQLength(deltaTime);
         currentTick += deltaTime;
 
@@ -155,9 +154,6 @@ void MidiParser::parseTrack()
                 uint8_t velocity = midiFile.read();
                 bytesRead++;
                 handleMidiEvent(statusByte, midiByte, velocity, currentTick);
-                // Serial.println(statusByte, HEX);
-                // Serial.println(midiByte, HEX);
-                // Serial.println(velocity, HEX);
             }
             else
             { // otro tipo de mensajes
@@ -247,23 +243,18 @@ void MidiParser::handleMetaEvent(uint8_t type, uint32_t length)
 
 void MidiParser::handleMidiEvent(uint8_t status, uint8_t note, uint8_t velocity, uint32_t currentTick)
 {
-    Serial.println("Se procesó un evento MIDI");
-
-    MidEvent event;
+    MidiEvent event;
     event.type = (status & 0xF0);
     event.note = note;
     event.velocity = velocity;
     event.tick = (currentTick * sequencerPPQN) / resolutionFile;
 
     // Debug: Mostrar información del canal
-    Serial.print("Canal: ");
-    Serial.print(status & 0x0F);
-    Serial.print(", Nota: ");
-    Serial.print(note);
-    Serial.print(", Velocidad: ");
-    Serial.print(velocity);
-    Serial.print(", current tick: ");
-    Serial.println(event.tick);
 
     events.push_back(event);
+    numRealEvents ++;
+}
+
+uint16_t MidiParser::getNumEvents() {
+    return numRealEvents;
 }

@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include <SdFat.h>
 
-struct MidEvent {
+struct MidiEvent {
     uint8_t type;      // Tipo de evento: NOTE_ON o NOTE_OFF
     uint8_t note;      // Nota MIDI
     uint8_t velocity;  // Velocidad
@@ -16,9 +16,9 @@ class MidiParser {
         const uint8_t sequencerPPQN = 96;
         SdFat sd;                   // Manejador de la SD
         FsFile midiFile;
-        std::vector<MidEvent> events;
+        std::vector<MidiEvent> &events;
         uint16_t resolutionFile;
-
+        uint16_t numRealEvents;
         uint8_t lastStatusByte;
 
         uint32_t readVLQ();
@@ -28,9 +28,10 @@ class MidiParser {
         void handleMidiEvent(uint8_t status, uint8_t note, uint8_t velocity, uint32_t currentTick);
 
     public:
-        MidiParser(const char *filename);
+        MidiParser(const char *filename, std::vector<MidiEvent>& parentEvents);
         bool parseFile();
-        const std::vector<MidEvent> &getEvents() const {return events; };
+        const std::vector<MidiEvent> &getEvents() const {return events; };
+        uint16_t getNumEvents();
 };
 
 #endif

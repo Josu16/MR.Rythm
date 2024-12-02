@@ -6,36 +6,21 @@
 #include <vector>
 
 #include "RotaryEncoder.h"
+#include "MidiParser.h"
 
-
-// Definimos los tipos de eventos MIDI
-        const uint8_t NOTE_ON = 0x90;
-        const uint8_t NOTE_OFF = 0x80;
-
-        // Definimos las notas de los instrumentos MIDI (ej. GM Drums)
-        const uint8_t KICK_DRUM = 36;
-        const uint8_t SNARE_DRUM = 38;
-        const uint8_t HI_HAT = 42;
-
-// Estructura para secuencias de eventos MIDI
-struct MidiEvent {
-    uint8_t type;     // NOTE_ON o NOTE_OFF
-    uint8_t note;     // Nota MIDI (ej. 36 = KICK_DRUM)
-    uint8_t velocity; // Velocidad (ej. 100)
-    int tick;
-};
 
 class ABRSequencer {
     private:
         IntervalTimer mainTimer;
-        volatile uint32_t currentTick = 0;
+        char name[20];
         volatile uint16_t bpm;
+        uint8_t numerator;
+        uint8_t denominator;
+        volatile uint32_t currentTick = 0;
         uint16_t lastBpm;
 
-        //AQUÍ VA drumPattern
-        // MidiEvent drumPattern[4];
-        static const int totalTicks = 384; // caso ejemplo para 4/4 con 1 compás.
-        std::vector<MidiEvent> eventList[totalTicks];
+        static const int totalTicks = 768; // caso ejemplo para 4/4 con 1 compás.
+        std::vector<MidiEvent> eventList;
 
         // Configuraión de variables para la reproducción
         unsigned int patternLength;
@@ -83,6 +68,7 @@ class ABRSequencer {
         void initializePattern();
         uint32_t getCurrentTick();
         void updateTrianglePosition();
+        void allNotesOff(uint8_t channel);
 };
 
 #endif
