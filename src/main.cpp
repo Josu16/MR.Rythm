@@ -5,6 +5,7 @@
 
 #include "RotaryEncoder.h"
 #include "ABRSequencer.h"
+#include "MidiParser.h"
 
 // // ----------------------------- SEQUENCER DECLARATION VARIABLES -----------------------------
 const int pinA1Re = 2;
@@ -162,6 +163,10 @@ void setup() {
 
     // // zona temporal
     actualizarTexto(); // Calcula el ancho inicial del texto
+
+
+    MidiParser parser("secuencia1.mid");
+    parser.parseFile();
 }
 
 void loop() {
