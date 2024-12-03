@@ -59,7 +59,7 @@ bool MidiParser::parseHeader()
     */
     bool validHeader = true;
 
-    char header[4];
+    char header[4] = {0};
     midiFile.read(header, 4);
     if (strncmp(header, "MThd", 4) != 0)
     {
@@ -240,7 +240,7 @@ void MidiParser::handleMetaEvent(uint8_t type, uint32_t length)
         }
         case 0x03:
         { // Track name (en logic es el nombre del pasaje midi no de la pista)  
-            char trackName[15];
+            char trackName[15] = {0};
             uint8_t indexName = 0;
             while (indexName < 15 && indexName < length) {
                 trackName[indexName] = midiFile.read();   
@@ -249,6 +249,7 @@ void MidiParser::handleMetaEvent(uint8_t type, uint32_t length)
             if (length > 15) {
                 midiFile.seek(midiFile.position() + (length - indexName));
             }
+            Serial.println(trackName);
             break;
         }
         case 0x58:
