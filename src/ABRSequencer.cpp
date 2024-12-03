@@ -6,12 +6,6 @@ ABRSequencer* ABRSequencer::instance = nullptr;
 ABRSequencer::ABRSequencer(int pinARe, int pinbRe, int pinFw, long bpm, volatile uint32_t *triangleX)
     : bpmRe(pinARe, pinbRe, bpm)
 {
-    // secuenciación  TEMPORAL!!!!!!!!!!!!!!!!
-    currentTick = 0;
-    this -> bpm = bpm;
-    lastBpm = this -> bpm;
-    isPlaying = false;
-
     // Controles
     // Rotary Encoder
     bpmRe.setValue(bpm);
@@ -55,6 +49,12 @@ void ABRSequencer::initializePattern() {
     //     Serial.print(", Tick: ");
     //     Serial.println(pattern.events[indexEvent].tick);
     // }
+
+    // secuenciación  TEMPORAL!!!!!!!!!!!!!!!!
+    currentTick = 0;
+    this -> bpm = pattern.tempo;
+    lastBpm = this -> bpm;
+    isPlaying = false;
 
 }
 
@@ -117,7 +117,7 @@ void ABRSequencer::onTimer() {
         currentTick++;  // Incrementa el contador de ticks
 
         // Reinicia el patrón después de 384 ticks (4/4 en 96 PPQN)
-        if (currentTick >= 768) {
+        if (currentTick >= pattern.totalTicks) {
             currentTick = 0;  // Reinicia los ticks
         }
     }
@@ -132,7 +132,8 @@ long ABRSequencer::cheeckBpm() {
     }
     return bpm;
 }
- void ABRSequencer::fwISR() {
+
+void ABRSequencer::fwISR() {
     if (instance) {
         instance->handleFootswitchInterrupt();
     }
@@ -170,7 +171,7 @@ uint32_t ABRSequencer::getCurrentTick() {
 void ABRSequencer::updateTrianglePosition() {
   if (currentTick % 24 == 0) { // cambia la posición del triángulo cada Semicorchea.
     // Actualiza la posición del triángulo
-    *triangleX = map(currentTick, 0, 768, 10, 117);
+    *triangleX = map(currentTick, 0, pattern.totalTicks, 10, 117);
   }
 }
 

@@ -18,8 +18,9 @@ class ABRSequencer {
         uint8_t denominator;
         volatile uint32_t currentTick = 0;
         uint16_t lastBpm;
+        uint8_t measures;
+        uint32_t totalTicks;
 
-        static const int totalTicks = 768; // caso ejemplo para 4/4 con 1 compás.
         Pattern pattern;
 
         // Configuraión de variables para la reproducción

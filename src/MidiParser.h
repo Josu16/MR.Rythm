@@ -12,7 +12,7 @@ struct MidiEvent {
 };
  
 struct Pattern {
-    char tackName[15];
+    char tackName[15] = {0};
     uint16_t tempo;
     uint8_t numerator;
     uint8_t denominator;

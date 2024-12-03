@@ -1,5 +1,6 @@
 #include <MidiParser.h>
 #include <SdFat.h>
+#include <math.h>
 
 MidiParser::MidiParser(const char *filename, Pattern& pattern): currentPattern(pattern)
 {
@@ -199,7 +200,13 @@ void MidiParser::parseTrack()
                 if ( midiFile.read() == 0x00) {
                     Serial.println("Oficialmente se acaba la pista");
                     Serial.print("Ultimo tick: ");
-                    Serial.println((currentTick * sequencerPPQN) / resolutionFile);
+                    float lastTick = (currentTick * sequencerPPQN) / resolutionFile;
+                    uint8_t qn = ((uint8_t)round(lastTick/sequencerPPQN));
+                    currentPattern.measures = qn/currentPattern.numerator; 
+                    currentPattern.totalTicks = qn * sequencerPPQN;
+                    Serial.println(currentPattern.measures);
+                    Serial.println(currentPattern.totalTicks);
+                    // Serial.r
                 }
             }
         }
@@ -236,20 +243,20 @@ void MidiParser::handleMetaEvent(uint8_t type, uint32_t length)
             uint16_t realTempo = 60000000/tempo; // TODO: se debe redondear no truncar.
             Serial.print("Tempo: ");
             Serial.println(realTempo);
+            currentPattern.tempo = realTempo;
             break;
         }
         case 0x03:
         { // Track name (en logic es el nombre del pasaje midi no de la pista)  
-            char trackName[15] = {0};
             uint8_t indexName = 0;
             while (indexName < 15 && indexName < length) {
-                trackName[indexName] = midiFile.read();   
+                currentPattern.tackName[indexName] = midiFile.read();   
                 indexName ++;
             }
             if (length > 15) {
                 midiFile.seek(midiFile.position() + (length - indexName));
             }
-            Serial.println(trackName);
+            // Serial.println(trackName);la expresión debe ser un valor L modificable
             break;
         }
         case 0x58:
@@ -258,9 +265,11 @@ void MidiParser::handleMetaEvent(uint8_t type, uint32_t length)
             midiFile.read((uint8_t*)&value, 2);
 
             // Separar los bytes
-            Serial.print(value & 0xFF);
-            Serial.print("/");
-            Serial.println(1 << (value >> 8) & 0xFF);
+            // Serial.print(value & 0xFF);
+            // Serial.print("/");
+            // Serial.println(1 << (value >> 8) & 0xFF);
+            currentPattern.numerator = value & 0xFF;
+            currentPattern.denominator = 1 << (value >> 8) & 0xFF;
             midiFile.seek(midiFile.position() + (length-2));  // Incrementa el puntero del archivo
             break;
         }
@@ -282,14 +291,14 @@ void MidiParser::handleMidiEvent(uint8_t status, uint8_t note, uint8_t velocity,
 
     // Debug: Mostrar información del canal
 
-    // Serial.print("Canal: ");
-    // Serial.print(status & 0x0F);
-    // Serial.print(", Nota: ");
-    // Serial.print(note);
-    // Serial.print(", Velocidad: ");
-    // Serial.print(velocity);
-    // Serial.print(", current tick: ");
-    // Serial.println(event.tick);
+    Serial.print("Canal: ");
+    Serial.print(status & 0x0F);
+    Serial.print(", Nota: ");
+    Serial.print(note);
+    Serial.print(", Velocidad: ");
+    Serial.print(velocity);
+    Serial.print(", current tick: ");
+    Serial.println(event.tick);
     currentPattern.events[numRealEvents] = event;
     numRealEvents ++;
 }
