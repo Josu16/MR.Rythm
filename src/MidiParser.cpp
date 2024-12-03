@@ -1,7 +1,7 @@
 #include <MidiParser.h>
 #include <SdFat.h>
 
-MidiParser::MidiParser(const char *filename, std::vector<MidiEvent>& parentEvents): events(parentEvents)
+MidiParser::MidiParser(const char *filename, Pattern& pattern): currentPattern(pattern)
 {
     numRealEvents = 0;
     if (!sd.begin(SdioConfig()))
@@ -282,7 +282,15 @@ void MidiParser::handleMidiEvent(uint8_t status, uint8_t note, uint8_t velocity,
 
     // Debug: Mostrar información del canal
 
-    events.push_back(event);
+    // Serial.print("Canal: ");
+    // Serial.print(status & 0x0F);
+    // Serial.print(", Nota: ");
+    // Serial.print(note);
+    // Serial.print(", Velocidad: ");
+    // Serial.print(velocity);
+    // Serial.print(", current tick: ");
+    // Serial.println(event.tick);
+    currentPattern.events[numRealEvents] = event;
     numRealEvents ++;
 }
 

@@ -20,19 +20,19 @@ class ABRSequencer {
         uint16_t lastBpm;
 
         static const int totalTicks = 768; // caso ejemplo para 4/4 con 1 compás.
-        std::vector<MidiEvent> eventList;
+        Pattern pattern;
 
         // Configuraión de variables para la reproducción
         unsigned int patternLength;
         volatile bool isPlaying;
 
         // Controles
-        
+
         long positionRe = 0; // Posición del rotary encoder
         RotaryEncoder bpmRe;
-        
+
         int pinFw;
-        
+
         volatile bool footswitchState;
         volatile bool footswitchChanged;
         volatile unsigned long lastDebounceTime;

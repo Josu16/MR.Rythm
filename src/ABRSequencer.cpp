@@ -40,21 +40,21 @@ ABRSequencer::ABRSequencer(int pinARe, int pinbRe, int pinFw, long bpm, volatile
 
 void ABRSequencer::initializePattern() {
 
-    MidiParser parser("001.mid", eventList);
+    MidiParser parser("001.mid", pattern);
     parser.parseFile();
 
     patternLength = parser.getNumEvents();
 
-    for (const auto& e : eventList) {
-        Serial.print("Type: ");
-        Serial.print(static_cast<int>(e.type), HEX);
-        Serial.print(", Note: ");
-        Serial.print(static_cast<int>(e.note));
-        Serial.print(", Velocity: ");
-        Serial.print(static_cast<int>(e.velocity));
-        Serial.print(", Tick: ");
-        Serial.println(e.tick);
-    }
+    // for (unsigned int indexEvent = 0; indexEvent < patternLength; indexEvent++) {
+    //     Serial.print("Type: ");
+    //     Serial.print(pattern.events[indexEvent].type, HEX);
+    //     Serial.print(", Note: ");
+    //     Serial.print(pattern.events[indexEvent].note);
+    //     Serial.print(", Velocity: ");
+    //     Serial.print(pattern.events[indexEvent].velocity);
+    //     Serial.print(", Tick: ");
+    //     Serial.println(pattern.events[indexEvent].tick);
+    // }
 
 }
 
@@ -100,14 +100,16 @@ void ABRSequencer::onTimer() {
             playledState = false;
         }
 
-        // Procesar todos los eventos en el tick actual
-        for (const auto& event : eventList) {
+        for (unsigned int indexEvent = 0; indexEvent < patternLength; indexEvent++) {
             // Enviar el evento MIDI
-            if (event.tick == currentTick) {
+            // TODO: revisar esta condición, mejorar el cíclo para iterar sobre la misma marcha del avance del tick
+            // porque como está actualmente es ineficiente, recorre todos los eventos para buscar los que tocan ser 
+            // ejecutados.
+            if (pattern.events[indexEvent].tick == currentTick) {
                 // Enviar el evento MIDI
-                Serial7.write(event.type);
-                Serial7.write(event.note);
-                Serial7.write(event.velocity);
+                Serial7.write(pattern.events[indexEvent].type);
+                Serial7.write(pattern.events[indexEvent].note);
+                Serial7.write(pattern.events[indexEvent].velocity);
             }
         }
         updateTrianglePosition();
