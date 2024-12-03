@@ -198,6 +198,8 @@ void MidiParser::parseTrack()
             if (midiFile.read() == 0x2F && midiFile.available()) { // segunda sospecha del fin de pista
                 if ( midiFile.read() == 0x00) {
                     Serial.println("Oficialmente se acaba la pista");
+                    Serial.print("Ultimo tick: ");
+                    Serial.println((currentTick * sequencerPPQN) / resolutionFile);
                 }
             }
         }
@@ -228,16 +230,44 @@ void MidiParser::handleMetaEvent(uint8_t type, uint32_t length)
     Serial.println("Se procesó un metaevento");
     switch (type)
     {
-    case 0x51:
-    { // Set Tempo
-        uint32_t tempo = (midiFile.read() << 16) | (midiFile.read() << 8) | midiFile.read();
-        Serial.print("Tempo: ");
-        Serial.println(tempo);
-        break;
-    }
-    default:
-        midiFile.seek(midiFile.position() + length); // Saltar datos no relevantes
-        break;
+        case 0x51:
+        { // Set Tempo
+            uint32_t tempo = (midiFile.read() << 16) | (midiFile.read() << 8) | midiFile.read();
+            uint16_t realTempo = 60000000/tempo; // TODO: se debe redondear no truncar.
+            Serial.print("Tempo: ");
+            Serial.println(realTempo);
+            break;
+        }
+        case 0x03:
+        { // Track name (en logic es el nombre del pasaje midi no de la pista)  
+            char trackName[15];
+            uint8_t indexName = 0;
+            while (indexName < 15 && indexName < length) {
+                trackName[indexName] = midiFile.read();   
+                indexName ++;
+            }
+            if (length > 15) {
+                midiFile.seek(midiFile.position() + (length - indexName));
+            }
+            break;
+        }
+        case 0x58:
+        { // Time signature
+            uint16_t value;
+            midiFile.read((uint8_t*)&value, 2);
+
+            // Separar los bytes
+            Serial.print(value & 0xFF);
+            Serial.print("/");
+            Serial.println(1 << (value >> 8) & 0xFF);
+            midiFile.seek(midiFile.position() + (length-2));  // Incrementa el puntero del archivo
+            break;
+        }
+        default:
+        {
+            midiFile.seek(midiFile.position() + length); // Saltar datos no relevantes
+            break;
+        }
     }
 }
 

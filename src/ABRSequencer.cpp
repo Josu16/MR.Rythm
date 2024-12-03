@@ -40,7 +40,7 @@ ABRSequencer::ABRSequencer(int pinARe, int pinbRe, int pinFw, long bpm, volatile
 
 void ABRSequencer::initializePattern() {
 
-    MidiParser parser("secuencia1.mid", eventList);
+    MidiParser parser("001.mid", eventList);
     parser.parseFile();
 
     patternLength = parser.getNumEvents();
