@@ -7,14 +7,14 @@
 
 class RotaryEncoder {
 public:
-    RotaryEncoder(int pinA, int pinB, long &position, unsigned long debounceDelay = 5);
+    RotaryEncoder(int pinA, int pinB, volatile long &position, unsigned long debounceDelay = 5);
     long update();
     void setValue(int newValue);
     // long RotaryEncoder::getValue();
 
 private:
     Encoder encoder;
-    long &position;  // Referencia a la variable de posición externa
+    volatile long &position;  // Referencia a la variable de posición externa
     long lastPosition;
     unsigned long lastDebounceTime;
     unsigned long debounceDelay;

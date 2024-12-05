@@ -3,21 +3,25 @@
 
 ABRSequencer* ABRSequencer::instance = nullptr;
 
-ABRSequencer::ABRSequencer(int pinARe, int pinbRe, int pinFw, long bpm, volatile uint32_t *triangleX)
-    : bpmRe(pinARe, pinbRe, bpm)
+ABRSequencer::ABRSequencer(/*int pinARe, int pinbRe, int pinFw, long bpm, volatile uint32_t *triangleX*/ uint8_t PPQN)
+    :
+    controls(120, 1), // tempo por defecto
+    screens(valuesMainScreen)
 {
+    // Seteos generales del secuenciador:
+    pulsesPerQuarterNote = PPQN;
+    
+    // Interfaz gráfica:
+    valuesMainScreen.numberPtrn = 1;
+
     // Controles
-    // Rotary Encoder
-    bpmRe.setValue(bpm);
 
     // FootSwitch
-    this->pinFw = pinFw;
     pinMode(pinFw, INPUT_PULLUP);
     footswitchChanged = false;
     footswitchState = HIGH;
     lastDebounceTime = 0;
     attachInterrupt(digitalPinToInterrupt(pinFw), fwISR, CHANGE);
-
 
     // Inicialización MIDI
     Serial7.begin(31250);     // Serial MIDI a 31,250 baudios
@@ -29,7 +33,7 @@ ABRSequencer::ABRSequencer(int pinARe, int pinbRe, int pinFw, long bpm, volatile
     // Vincula la instancia actual a la referencia estática
     instance = this;
 
-    this -> triangleX = triangleX;
+    // this -> triangleX = triangleX;
 }
 
 void ABRSequencer::initializePattern() {
@@ -50,12 +54,16 @@ void ABRSequencer::initializePattern() {
     //     Serial.println(pattern.events[indexEvent].tick);
     // }
 
-    // secuenciación  TEMPORAL!!!!!!!!!!!!!!!!
+    // secuenciación 
     currentTick = 0;
-    this -> bpm = pattern.tempo;
-    lastBpm = this -> bpm;
+    lastBpm = pattern.tempo;
+    valuesMainScreen.bpm = lastBpm;
     isPlaying = false;
 
+    // Controles
+    controls.setBpm(lastBpm);
+    lastPtrn = controls.readPtrn();
+    valuesMainScreen.numberPtrn = lastPtrn;
 }
 
 void ABRSequencer::beginSequencer() {
@@ -64,7 +72,7 @@ void ABRSequencer::beginSequencer() {
 }
 
 void ABRSequencer::updateTimerInterval() {
-    uint32_t interval = 60000000 / (bpm * 96); // Intervalo en microsegundos
+    uint32_t interval = 60000000 / (valuesMainScreen.bpm * pulsesPerQuarterNote); // Intervalo en microsegundos
      // Detén el timer antes de actualizar el intervalo
     mainTimer.end();
     // Reinicia el timer con el nuevo intervalo
@@ -123,14 +131,14 @@ void ABRSequencer::onTimer() {
     }
 }
 
-long ABRSequencer::cheeckBpm() {
-    bpm = bpmRe.update();
+void ABRSequencer::updateBpm() {
+    valuesMainScreen.bpm = controls.readBpm();
+    valuesMainScreen.numberPtrn = controls.readPtrn();
     // Solo actualiza el timer si el BPM ha cambiado
-    if (bpm != lastBpm) {
+    if (valuesMainScreen.bpm != lastBpm) {
         updateTimerInterval(); // Ajusta el tempo llamando a la función de actualización del timer
-        lastBpm = bpm;         // Actualiza el valor de BPM previo
+        lastBpm = valuesMainScreen.bpm;         // Actualiza el valor de BPM previo
     }
-    return bpm;
 }
 
 void ABRSequencer::fwISR() {
@@ -138,13 +146,16 @@ void ABRSequencer::fwISR() {
         instance->handleFootswitchInterrupt();
     }
 }
-
 void ABRSequencer::handleFootswitchInterrupt() {
     footswitchState = digitalRead(pinFw);
     footswitchChanged = true;
 }
 
-void ABRSequencer::update() {
+void ABRSequencer::loop() {
+    // Actualizaciones de pantallas.
+    screens.refresh_ui();
+    // Verificación de controles físicos.
+    updateBpm();
     if (footswitchChanged) {
         unsigned long currentTime = millis();
         if ((currentTime - lastDebounceTime) > debounceDelay) {
@@ -171,7 +182,7 @@ uint32_t ABRSequencer::getCurrentTick() {
 void ABRSequencer::updateTrianglePosition() {
   if (currentTick % 24 == 0) { // cambia la posición del triángulo cada Semicorchea.
     // Actualiza la posición del triángulo
-    *triangleX = map(currentTick, 0, pattern.totalTicks, 10, 117);
+    valuesMainScreen.triangleX = map(currentTick, 0, pattern.totalTicks, 10, 117);
   }
 }
 

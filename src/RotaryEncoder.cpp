@@ -2,10 +2,11 @@
 #include "RotaryEncoder.h"
 #include <Arduino.h>
 
-RotaryEncoder::RotaryEncoder(int pinA, int pinB, long &position, unsigned long debounceDelay)
+RotaryEncoder::RotaryEncoder(int pinA, int pinB, volatile long &position, unsigned long debounceDelay)
     : encoder(pinA, pinB), position(position), debounceDelay(debounceDelay) {
     lastPosition = encoder.read() / 4;
     lastDebounceTime = 0;
+    setValue(position);
 }
 
 void RotaryEncoder::setValue(int newValue) {
