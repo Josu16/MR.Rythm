@@ -2,36 +2,32 @@
 #include "RotaryEncoder.h"
 #include <Arduino.h>
 
-RotaryEncoder::RotaryEncoder(int pinA, int pinB, volatile long &position, unsigned long debounceDelay)
+RotaryEncoder::RotaryEncoder(int pinA, int pinB, volatile long position, int minPos, int maxPos,  unsigned long debounceDelay)
     : encoder(pinA, pinB), position(position), debounceDelay(debounceDelay) {
     lastPosition = encoder.read() / 4;
     lastDebounceTime = 0;
-    setValue(position);
+    setPosition(position);
+
+    minPosition = minPos;
+    maxPosition = maxPos;
 }
 
-void RotaryEncoder::setValue(int newValue) {
+void RotaryEncoder::setPosition(int newValue) {
     encoder.write(newValue*4);
 }
 
-// long RotaryEncoder::getValue() {
-//     return encoder.read();
-// }
-
-long RotaryEncoder::update() {
+long RotaryEncoder::getPosition() {
     long currentPosition = encoder.read() / 4;
-    // if (currentPosition < 20) {
-    //         currentPosition = 20;
-    //         encoder.write(20);
-    //     }
-    //     else if (currentPosition > 260) {
-    //         currentPosition = 260;
-    //         encoder.write(260);
-    //     }
-    // if (currentPosition != lastPosition && (millis() - lastDebounceTime) > debounceDelay) {
-    //     position = currentPosition;
-    //     lastPosition = currentPosition;
-    //     lastDebounceTime = millis();
-        
-    // }
-    return currentPosition;
+    // Aplicar los límites
+    if (currentPosition < minPosition) {
+        currentPosition = minPosition;
+        setPosition(minPosition); // Resetea el encoder a MIN_POSITION
+    } 
+    else if (currentPosition > maxPosition) {
+        currentPosition = maxPosition;
+        setPosition(maxPosition); // Resetea el encoder a MAX_POSITION
+    }
+
+    position = currentPosition;
+    return position;
 }
