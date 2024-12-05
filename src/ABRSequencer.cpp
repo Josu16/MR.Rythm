@@ -14,15 +14,6 @@ ABRSequencer::ABRSequencer(/*int pinARe, int pinbRe, int pinFw, long bpm, volati
     // Interfaz gráfica:
     valuesMainScreen.numberPtrn = 1;
 
-    // Controles
-
-    // FootSwitch
-    pinMode(pinFw, INPUT_PULLUP);
-    footswitchChanged = false;
-    footswitchState = HIGH;
-    lastDebounceTime = 0;
-    attachInterrupt(digitalPinToInterrupt(pinFw), fwISR, CHANGE);
-
     // Inicialización MIDI
     Serial7.begin(31250);     // Serial MIDI a 31,250 baudios
 
@@ -38,7 +29,7 @@ ABRSequencer::ABRSequencer(/*int pinARe, int pinbRe, int pinFw, long bpm, volati
 
 void ABRSequencer::initializePattern() {
 
-    MidiParser parser("001.mid", pattern);
+    MidiParser parser("secuencia1.mid", pattern);
     parser.parseFile();
 
     patternLength = parser.getNumEvents();
@@ -141,37 +132,24 @@ void ABRSequencer::updateBpm() {
     }
 }
 
-void ABRSequencer::fwISR() {
-    if (instance) {
-        instance->handleFootswitchInterrupt();
-    }
-}
-void ABRSequencer::handleFootswitchInterrupt() {
-    footswitchState = digitalRead(pinFw);
-    footswitchChanged = true;
-}
+
 
 void ABRSequencer::loop() {
     // Actualizaciones de pantallas.
     screens.refresh_ui();
+    
     // Verificación de controles físicos.
     updateBpm();
-    if (footswitchChanged) {
-        unsigned long currentTime = millis();
-        if ((currentTime - lastDebounceTime) > debounceDelay) {
-            if (footswitchState == LOW) {
-                isPlaying = !isPlaying;
-
-                // UBICACIÓN TEMPORAL
-                currentTick = 0;  // Reinicia los ticks
-                digitalWrite(playLed, LOW);
-                
-                // TODO: APAGAR TODAS LAS NOTAS QUE HAYAN PERMANECIDO ACTIVAS
-                allNotesOff(1);
-            }
-            lastDebounceTime = currentTime;
+    // Verificar cambios en el estado del footswitch
+    if (controls.checkForFootswitch()) {
+        isPlaying = !isPlaying;
+        if (!isPlaying) {
+            // Detener la secuencia
+            currentTick = 0;  // Reinicia los ticks
+            digitalWrite(playLed, LOW);
+            allNotesOff(1);
+            // Serial.println("Secuencia detenida.");
         }
-        footswitchChanged = false;
     }
 }
 

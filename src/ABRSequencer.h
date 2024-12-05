@@ -15,7 +15,6 @@ class ABRSequencer {
         uint8_t pulsesPerQuarterNote;
         IntervalTimer mainTimer;
         char name[20];
-        // volatile long bpm =127;
         uint8_t numerator;
         uint8_t denominator;
         volatile uint32_t currentTick = 0;
@@ -33,29 +32,15 @@ class ABRSequencer {
         // Controles
         Control controls;
 
-        int pinFw = 41;
-
-        volatile bool footswitchState;
-        volatile bool footswitchChanged;
-        volatile unsigned long lastDebounceTime;
-        const unsigned long debounceDelay = 200;  // Tiempo de debounce en milisegundos
-
-
         // Indicadores
         const int playLed = 14;
         volatile bool playledState = false;     // Estado actual del LED
         volatile uint32_t playLedOffTick = 0;   // Tick en el que se apagará el LED
 
-        // volatile uint32_t *triangleX;
-
         // Función estática para el timer
         static void timerCallback();
         // Referencia estática a la instancia actual
         static ABRSequencer* instance;
-
-        // footswitches
-        static void fwISR();
-        void handleFootswitchInterrupt();
 
         // Interfaz gráfica
         MainScreen valuesMainScreen;

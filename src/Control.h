@@ -22,16 +22,35 @@ class Control {
         RotaryEncoder ptrnRE;
         long positionPtrnRE = 0;
 
+        // switches
+        int pinFw = 41;
+
+        volatile bool footswitchState;
+        volatile bool footswitchChanged;
+        volatile unsigned long lastDebounceTime;
+        const unsigned long debounceDelay = 200;  // Tiempo de debounce en milisegundos
+
+        // Referencia estática a la instancia actual
+        static Control* instance;
+
     public:
         Control(volatile long tempo, volatile long pattern);
+
+        void refreshControls();
 
         // lectura de controles
         long readBpm();
         long readPtrn();
+        bool checkForFootswitch();
         
         // Seteo de controles
         void setBpm(int newValue);
         void setPtrn(int newValue);
+
+        // MANEJO DE INTERRUPCIONES
+        // footswitches
+        static void fwISR();
+        void handleFootswitchInterrupt();
 };
 
 #endif
