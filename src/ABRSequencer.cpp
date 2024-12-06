@@ -1,12 +1,14 @@
 #include "ABRSequencer.h"
 #include <Arduino.h>
+#include <SdFat.h>
 
 ABRSequencer* ABRSequencer::instance = nullptr;
 
 ABRSequencer::ABRSequencer(/*int pinARe, int pinbRe, int pinFw, long bpm, volatile uint32_t *triangleX*/ uint8_t PPQN)
     :
     controls(120, 1), // tempo por defecto
-    screens(valuesMainScreen)
+    screens(valuesMainScreen),
+    parser(midiFiles, pattern)
 {
     // Seteos generales del secuenciador:
     pulsesPerQuarterNote = PPQN;
@@ -24,13 +26,22 @@ ABRSequencer::ABRSequencer(/*int pinARe, int pinbRe, int pinFw, long bpm, volati
     // Vincula la instancia actual a la referencia estática
     instance = this;
 
-    // this -> triangleX = triangleX;
 }
 
-void ABRSequencer::initializePattern() {
+void ABRSequencer::readAllPatterns() {
+    parser.getAvailablePatterns();
+}
 
-    MidiParser parser("secuencia1.mid", pattern);
-    parser.parseFile();
+void ABRSequencer::initializePattern(bool playing) {
+
+    parser.parseFile(controls.readPtrn());
+    // Copia segura del nuevo nombre
+    strncpy(valuesMainScreen.namePtrn, pattern.tackName, 15);
+
+    Serial.print("Contenido de namePtrn tras la copia: ");
+    Serial.println(valuesMainScreen.namePtrn);
+
+    // No es necesario agregar '\0' manualmente ya que strncpy respeta el límite asegurado por el memset
 
     patternLength = parser.getNumEvents();
 
@@ -49,17 +60,22 @@ void ABRSequencer::initializePattern() {
     currentTick = 0;
     lastBpm = pattern.tempo;
     valuesMainScreen.bpm = lastBpm;
-    isPlaying = false;
+    isPlaying = playing;
 
     // Controles
     controls.setBpm(lastBpm);
     lastPtrn = controls.readPtrn();
     valuesMainScreen.numberPtrn = lastPtrn;
+
+    // Actualizar timer y tempo
+    // Ubicación temporal en función de la funcionalidad,
+    // acá, al cambiar de ritmo se cambiará el tempo inmediatamente.
+    updateTimerInterval();
 }
 
 void ABRSequencer::beginSequencer() {
+    readAllPatterns();
     initializePattern();
-    updateTimerInterval();
 }
 
 void ABRSequencer::updateTimerInterval() {
@@ -124,7 +140,6 @@ void ABRSequencer::onTimer() {
 
 void ABRSequencer::updateBpm() {
     valuesMainScreen.bpm = controls.readBpm();
-    valuesMainScreen.numberPtrn = controls.readPtrn();
     // Solo actualiza el timer si el BPM ha cambiado
     if (valuesMainScreen.bpm != lastBpm) {
         updateTimerInterval(); // Ajusta el tempo llamando a la función de actualización del timer
@@ -140,6 +155,7 @@ void ABRSequencer::loop() {
     
     // Verificación de controles físicos.
     updateBpm();
+
     // Verificar cambios en el estado del footswitch
     if (controls.checkForFootswitch()) {
         isPlaying = !isPlaying;
@@ -150,6 +166,18 @@ void ABRSequencer::loop() {
             allNotesOff(1);
             // Serial.println("Secuencia detenida.");
         }
+    }
+
+    // Verificar cambio de patrón (Radical MODE)
+    valuesMainScreen.numberPtrn = controls.readPtrn();
+    if (valuesMainScreen.numberPtrn != lastPtrn) {
+        lastPtrn = valuesMainScreen.numberPtrn;
+        // Detener todo evento midi mandado.
+        allNotesOff(1);
+        // Obterner el patrón
+        Serial.print("Patrón: ");
+        Serial.println(controls.readPtrn());
+        initializePattern(isPlaying);
     }
 }
 

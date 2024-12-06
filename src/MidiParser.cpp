@@ -2,21 +2,58 @@
 #include <SdFat.h>
 #include <math.h>
 
-MidiParser::MidiParser(const char *filename, Pattern& pattern): currentPattern(pattern)
+MidiParser::MidiParser(std::vector<String> &files, Pattern& pattern)
+:
+    midiFiles(files),
+    currentPattern(pattern)
 {
-    numRealEvents = 0;
+    Serial.println("Hola parser");
+
     if (!sd.begin(SdioConfig()))
     {
         Serial.println("Error inicializando la tarjeta SD");
         return;
     }
 
-    midiFile = sd.open(filename, FILE_READ);
-    if (!midiFile)
-    {
-        Serial.println("Error abriendo archivo MIDI");
+    // if (!midiFile)
+    // {
+    //     Serial.println("Error abriendo archivo MIDI");
+    // }
+    // Serial.println("Archivo abierto correctamente");
+
+}
+
+void MidiParser::getAvailablePatterns() {
+
+    SdFile dir; // Directorio
+
+    if (!dir.open(directoryPath)) { // Abre el directorio
+        Serial.println("No se pudo abrir el directorio /patterns.");
+        return;
     }
-    Serial.println("Archivo abierto correctamente");
+
+    // // midiFile = sd.open(filename, FILE_READ);
+    while (midiFile.openNext(&dir, O_READ)) {
+        char fileName[30];
+        midiFile.getName(fileName, sizeof(fileName));
+
+        // Verifica si la extensión es .mid (case insensitive)
+        if (strstr(fileName, ".mid") || strstr(fileName, ".MID")) {
+            midiFiles.push_back(String(fileName)); // Agrega al vector
+        }
+
+        midiFile.close(); // Cierra el archivo actual
+    }
+    dir.close(); // Cierra el directorio
+
+    // Ordena los archivos alfabéticamente
+    std::sort(midiFiles.begin(), midiFiles.end());
+
+    // Imprime la lista ordenada
+    Serial.println("Archivos MIDI en /patterns:");
+    for (size_t i = 0; i < midiFiles.size(); ++i) {
+        Serial.println(midiFiles[i]);
+    }
 }
 
 uint32_t MidiParser::readVLQ()
@@ -213,11 +250,16 @@ void MidiParser::parseTrack()
     }
 }
 
-bool MidiParser::parseFile()
+bool MidiParser::parseFile(int ptrnIndex)
 {
+    numRealEvents = 0;
+    String fullPath = String(directoryPath) + "/" + midiFiles[ptrnIndex-1]; 
+    const char* filePath = fullPath.c_str(); // Convierte a const char* para SdFat
+    Serial.println(filePath); // Imprime la ruta completa para depuración
+    midiFile = sd.open(filePath, FILE_READ);
     if (!midiFile)
     {
-        Serial.println("no existía ya");
+        Serial.println("Error abriendo archivo MIDI");
         return false;
     }
 
@@ -249,6 +291,10 @@ void MidiParser::handleMetaEvent(uint8_t type, uint32_t length)
         case 0x03:
         { // Track name (en logic es el nombre del pasaje midi no de la pista)  
             uint8_t indexName = 0;
+            // Limpieza del arreglo antes de copiar
+            for (size_t i = 0; i < 15; i++) {
+                currentPattern.tackName[i] = '\0';
+            }
             while (indexName < 15 && indexName < length) {
                 currentPattern.tackName[indexName] = midiFile.read();   
                 indexName ++;
@@ -256,7 +302,8 @@ void MidiParser::handleMetaEvent(uint8_t type, uint32_t length)
             if (length > 15) {
                 midiFile.seek(midiFile.position() + (length - indexName));
             }
-            // Serial.println(trackName);la expresión debe ser un valor L modificable
+            // Serial.println("Bueno");
+            // Serial.println(currentPattern.tackName);//la expresión debe ser un valor L modificable
             break;
         }
         case 0x58:

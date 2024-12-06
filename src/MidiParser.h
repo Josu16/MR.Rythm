@@ -28,10 +28,13 @@ class MidiParser {
         const uint8_t sequencerPPQN = 96;
         SdFat sd;
         FsFile midiFile;
-        Pattern &currentPattern;
         uint16_t resolutionFile;
         uint16_t numRealEvents;
         uint8_t lastStatusByte;
+
+        const char* directoryPath = "/patterns"; // Ruta del directorio
+        std::vector<String> &midiFiles; // Contenedor para los nombres de archivos
+        Pattern &currentPattern;
 
         uint32_t readVLQ();
         bool parseHeader();
@@ -40,9 +43,10 @@ class MidiParser {
         void handleMidiEvent(uint8_t status, uint8_t note, uint8_t velocity, uint32_t currentTick);
 
     public:
-        MidiParser(const char *filename, Pattern& currentPattern);
-        bool parseFile();
+        MidiParser(std::vector<String> &files, Pattern& currentPattern);
+        bool parseFile(int ptrnIndex);
         uint16_t getNumEvents();
+        void getAvailablePatterns();
 };
 
 #endif

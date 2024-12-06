@@ -1,49 +1,6 @@
 #include "UI.h"
 #include <Arduino.h>
 
-const char* patrones[] = {
-  "Margarita 1a c",
-  "Oye como va",
-  "Bolero 2",
-  "Bolero 3",
-  "Bolero ritmico",
-  "Bossa nova",
-  "Big Samba",
-  "Europa 1",
-  "Vals Arillo",
-  "Salsa Universal",
-  "Puente de piedr",
-  "Cumbia Carro sh",
-  "Cumbia texana",
-  "Cumbia sonora",
-  "Mambo",
-  "Merengue",
-  "Chilena Tomasin",
-  "FIN DE LISTA",
-  "FIN DE LISTA",
-  "FIN DE LISTA",
-  "FIN DE LISTA",
-  "FIN DE LISTA",
-  "FIN DE LISTA",
-  "FIN DE LISTA",
-  "FIN DE LISTA",
-  "FIN DE LISTA",
-  "FIN DE LISTA",
-  "FIN DE LISTA",
-  "FIN DE LISTA",
-  "FIN DE LISTA",
-  "FIN DE LISTA",
-  "FIN DE LISTA",
-  "FIN DE LISTA",
-  "FIN DE LISTA",
-  "FIN DE LISTA",
-  "FIN DE LISTA",
-  "FIN DE LISTA",
-  "FIN DE LISTA",
-  "FIN DE LISTA",
-  "FIN DE LISTA",
-};
-
 UI::UI(MainScreen &values)
     :
     valuesMainScreen(values),
@@ -107,7 +64,7 @@ void UI::refresh_ui() {
 
         // NOMBRE DEL PATRÓN (centrado o deslizante)
         u8g2_1.setCursor(0, 35); // Cambia "55" si necesitas ajustar la posición vertical
-        u8g2_1.print(patrones[valuesMainScreen.numberPtrn]);
+        u8g2_1.print(valuesMainScreen.namePtrn);
 
         // número del patrón
         u8g2_1.setFont(u8g2_font_luBS18_tf);
