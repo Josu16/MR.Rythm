@@ -253,24 +253,35 @@ void MidiParser::parseTrack()
 bool MidiParser::parseFile(int ptrnIndex)
 {
     numRealEvents = 0;
-    String fullPath = String(directoryPath) + "/" + midiFiles[ptrnIndex-1]; 
-    const char* filePath = fullPath.c_str(); // Convierte a const char* para SdFat
-    Serial.println(filePath); // Imprime la ruta completa para depuración
-    midiFile = sd.open(filePath, FILE_READ);
-    if (!midiFile)
-    {
-        Serial.println("Error abriendo archivo MIDI");
-        return false;
-    }
-
-    if (parseHeader())
-    {
-        while (midiFile.available())
-        {
-            parseTrack();
+    // VALIDACIÓN DE EXISTENCIA DE SECUENCIA EN EL ÍNDICE
+    if (ptrnIndex > midiFiles.size()) {
+        for (size_t i = 0; i < 15; i++) {
+            currentPattern.tackName[i] = '\0';
         }
+        currentPattern.tempo = 120;
+        currentPattern.totalTicks = 384;
+        
+        return false; // no hay más archivos
+    } else {
+        String fullPath = String(directoryPath) + "/" + midiFiles[ptrnIndex-1]; 
+        const char* filePath = fullPath.c_str(); // Convierte a const char* para SdFat
+        Serial.println(filePath); // Imprime la ruta completa para depuración
+        midiFile = sd.open(filePath, FILE_READ);
+        if (!midiFile)
+        {
+            Serial.println("Error abriendo archivo MIDI");
+            return false;
+        }
+
+        if (parseHeader())
+        {
+            while (midiFile.available())
+            {
+                parseTrack();
+            }
+        }
+        midiFile.close();
     }
-    midiFile.close();
     return true;
 }
 
