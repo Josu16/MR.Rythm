@@ -20,6 +20,7 @@ class ABRSequencer {
         volatile uint32_t currentTick = 0;
         uint16_t lastBpm;
         uint16_t lastPtrn;
+        uint8_t lastVariant;
         uint8_t measures;
         uint32_t totalTicks;
 

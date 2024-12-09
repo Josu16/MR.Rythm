@@ -61,11 +61,16 @@ void ABRSequencer::initializePattern(bool playing) {
     lastBpm = pattern.tempo;
     valuesMainScreen.bpm = lastBpm;
     isPlaying = playing;
+    valuesMainScreen.measures = pattern.measures;
+    valuesMainScreen.numerator  = pattern.numerator;
+    valuesMainScreen.denominator = pattern.denominator;
 
     // Controles
     controls.setBpm(lastBpm);
     lastPtrn = controls.readPtrn();
     valuesMainScreen.numberPtrn = lastPtrn;
+    lastVariant = controls.readVariant();
+    valuesMainScreen.currentVariationIndex = lastVariant;
 
     // Actualizar timer y tempo
     // Ubicación temporal en función de la funcionalidad,
@@ -151,7 +156,7 @@ void ABRSequencer::updateBpm() {
 
 void ABRSequencer::loop() {
     // Actualizaciones de pantallas.
-    screens.refresh_ui();
+    screens.refreshUi();
     
     // Verificación de controles físicos.
     updateBpm();
@@ -179,6 +184,9 @@ void ABRSequencer::loop() {
         Serial.println(controls.readPtrn());
         initializePattern(isPlaying);
     }
+
+    // Verificar cambio de variante
+    valuesMainScreen.currentVariationIndex = controls.readVariant();
 }
 
 uint32_t ABRSequencer::getCurrentTick() {

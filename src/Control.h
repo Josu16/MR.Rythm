@@ -11,16 +11,22 @@ const int pinFw = 41;
 
 const int pinA2Re = 4;
 const int pinB2Re = 5;
+
+const int pinA3Re = 6;
+const int pinB3Re = 7;
 // TEMPORALES, ESTAS SE MOVERÁN PRONTO
 
 class Control {
     private:
         // Rotary Encoders
         RotaryEncoder bpmRE;
-        long positionBpmRe = 0; // Posición del rotary encoder
+        // long positionBpmRe = 0;
 
         RotaryEncoder ptrnRE;
-        long positionPtrnRE = 0;
+        // long positionPtrnRE = 0;
+
+        RotaryEncoder variantRE;
+        // long positionVariantRE = 1;
 
         // switches
         int pinFw = 41;
@@ -41,11 +47,13 @@ class Control {
         // lectura de controles
         long readBpm();
         long readPtrn();
+        long readVariant();
         bool checkForFootswitch();
         
         // Seteo de controles
         void setBpm(int newValue);
         void setPtrn(int newValue);
+        void setVariant(int newValue);
 
         // MANEJO DE INTERRUPCIONES
         // footswitches

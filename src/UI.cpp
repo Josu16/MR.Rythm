@@ -4,22 +4,22 @@
 UI::UI(MainScreen &values)
     :
     valuesMainScreen(values),
-    u8g2(U8G2_R0, CS, RS, RSE),
-    u8g2_1(U8G2_R0, CS_1, RS_1, RSE_1)
+    playScreen(U8G2_R0, CS, RS, RSE),
+    ptrScreen(U8G2_R0, CS_1, RS_1, RSE_1)
   {
     // Inicialización de ambas pantallas
-    u8g2.begin();
-    u8g2.setContrast(10);
-    u8g2.enableUTF8Print();
+    playScreen.begin();
+    playScreen.setContrast(10);
+    playScreen.enableUTF8Print();
 
-    u8g2_1.begin();
-    u8g2_1.setContrast(15);
-    u8g2_1.enableUTF8Print();
+    ptrScreen.begin();
+    ptrScreen.setContrast(15);
+    ptrScreen.enableUTF8Print();
 
     // patronIndex = 1;
 }
 
-void UI::draw_dotted_line(U8G2 &u8g2, int x1, int y1, int x2, int y2) {
+void UI::draw_dotted_line(U8G2 &playScreen, int x1, int y1, int x2, int y2) {
     int dx = x2 - x1;
     int dy = y2 - y1;
     int steps = max(abs(dx), abs(dy));
@@ -31,110 +31,171 @@ void UI::draw_dotted_line(U8G2 &u8g2, int x1, int y1, int x2, int y2) {
 
     for (int i = 0; i <= steps; i++) {
         if ((i % 3) != 2) { // Pinta en los pasos 0, 1, 3, 4, 6, 7, etc. (dos encendidos, uno apagado)
-            u8g2.drawPixel((int)x, (int)y);
+            playScreen.drawPixel((int)x, (int)y);
         }
         x += x_inc;
         y += y_inc;
     }
 }
 
-void UI::refresh_ui() {
+void UI::refreshUi() {
+    refreshPlayScreen();
+    refreshPtrnScreen();
+}
+
+void UI::refreshPlayScreen() {
     // Pantalla 1
-    u8g2.firstPage();
+    playScreen.firstPage();
     do {
-        u8g2.setFont(u8g2_font_luBS10_tf);
-        u8g2.drawFrame(0, 0, 128, 64);
-        u8g2.setCursor(6, 25);
-        u8g2.print(valuesMainScreen.numberPtrn);
-        u8g2.drawLine(6, 35, 120, 35);
-        u8g2.setCursor(14, 55);
-        u8g2.print("BUENOS DÍAS");
-    } while (u8g2.nextPage());
+        playScreen.setFont(u8g2_font_luBS10_tf);
+        playScreen.drawFrame(0, 0, 128, 64);
+        playScreen.setCursor(6, 25);
+        playScreen.print(valuesMainScreen.numberPtrn);
+        playScreen.drawLine(6, 35, 120, 35);
+        playScreen.setCursor(14, 55);
+        playScreen.print("BUENOS DÍAS");
+    } while (playScreen.nextPage());
 
     // Pantalla 2
     // Detecta si patronIndex cambió
     if (valuesMainScreen.numberPtrn != ultimopatronIndex) {
         ultimopatronIndex = valuesMainScreen.numberPtrn;
     }
+}
 
-    u8g2_1.firstPage();
+void UI::refreshPtrnScreen() {
+    ptrScreen.firstPage();
     do {
-        u8g2_1.setFont(u8g2_font_crox4t_tf); // opción má acertada
+        //  ----------- NOMBRE DEL PATRÓN (centrado)
+        ptrScreen.setFont(u8g2_font_crox4t_tf); // opción má acertada
+        int16_t textWidth = ptrScreen.getUTF8Width(valuesMainScreen.namePtrn);
+        // Calcula la posición horizontal para centrar
+        int16_t x = (128 - textWidth) / 2; // 128 es el ancho de la pantalla
+        ptrScreen.setCursor(x, 35); // Cambia "55" si necesitas ajustar la posición vertical
+        ptrScreen.print(valuesMainScreen.namePtrn);
 
-
-        // NOMBRE DEL PATRÓN (centrado o deslizante)
-        u8g2_1.setCursor(0, 35); // Cambia "55" si necesitas ajustar la posición vertical
-        u8g2_1.print(valuesMainScreen.namePtrn);
-
-        // número del patrón
-        u8g2_1.setFont(u8g2_font_luBS18_tf);
-        u8g2_1.setCursor(-1, 18);
+        // ----------- número del patrón
+        ptrScreen.setFont(u8g2_font_luBS18_tf);
+        ptrScreen.setCursor(-1, 18);
         char buffer[4]; // 3 dígitos + terminador nulo
         // Formateamos el número con ceros a la izquierda
         snprintf(buffer, sizeof(buffer), "%03d", valuesMainScreen.numberPtrn);
-        u8g2_1.print(buffer);
+        ptrScreen.print(buffer);
 
-        // Indicador de compás rítmico
-        u8g2_1.drawBox(53, 0, 74, 9); // Dibuja un rectángulo negro donde estará el text
-        u8g2_1.setDrawColor(0); // Color de dibujo blanc
-        // draw_dotted_line(u8g2_1, 54, 9, 127, 9);
-        // u8g2_1.setFont(u8g2_font_squeezed_b7_tr); // ES UNA buena fuente pero no me convence mucho aún
-        u8g2_1.setFont(u8g2_font_squeezed_b7_tr);
-        u8g2_1.setCursor(110, 8);
-        u8g2_1.print("6/8");
+        // ----------- Inversión de colores
+        ptrScreen.drawBox(53, 0, 74, 9); // Dibuja un rectángulo negro donde estará el text
+        ptrScreen.setDrawColor(0); // Color de dibujo blanco
 
-        // Indicador de tipo de secuencia
-        u8g2_1.setFont(u8g2_font_5x7_mr);
-        // u8g2_1.setFont(u8g2_font_lucasfont_alternate_tf);
-        u8g2_1.setCursor(54, 8);
-        u8g2_1.print("PATRON");
+        // ----------- Indicador de compás rítmico
+        ptrScreen.setFont(u8g2_font_squeezed_b7_tr);
+        ptrScreen.setCursor(110, 8);
+        ptrScreen.print(valuesMainScreen.numerator);
+        ptrScreen.print("/");
+        ptrScreen.print(valuesMainScreen.denominator);
 
-        // indicador de número de compases
-        u8g2_1.setFont(u8g2_font_timR08_tn);
-        u8g2_1.setCursor(94, 8);
-        u8g2_1.print("4");
-        u8g2_1.setDrawColor(1); // Color de dibujo negro
+        // ----------- Indicador de tipo de secuencia
+        ptrScreen.setFont(u8g2_font_5x7_mr);
+        // ptrScreen.setFont(u8g2_font_lucasfont_alternate_tf);
+        ptrScreen.setCursor(54, 8);
+        ptrScreen.print("PATRON");
 
-        u8g2_1.setFont(u8g2_font_04b_03b_tr);
-        u8g2_1.setCursor(73, 17);
-        u8g2_1.print("001 - 1");
+        // ----------- Indicador de número de compases
+        ptrScreen.setFont(u8g2_font_timR08_tn);
+        ptrScreen.setCursor(94, 8);
+        ptrScreen.print(valuesMainScreen.measures);
 
-        // u8g2_1.drawBox(53, 0, 74, 9); // Dibuja un rectángulo negro donde estará el text
-        // u8g2_1.setCursor(94, 17);
-        // u8g2_1.print("3");
+        // ----------- Inversión de colores
+        ptrScreen.setDrawColor(1); // Color de dibujo negro
 
-        // linea divisora
-        u8g2_1.drawTriangle(
+        // ----------- Conteo de compases
+        ptrScreen.setFont(u8g2_font_04b_03b_tr);
+        ptrScreen.setCursor(73, 17);
+        ptrScreen.print("001 - ");
+        ptrScreen.print(valuesMainScreen.currentBlack);
+
+        // ----------- Triángulo de secuencia
+        ptrScreen.drawTriangle(
         valuesMainScreen.triangleX, lineY,    // Vértice superior
         valuesMainScreen.triangleX - 3, lineY - 3,    // Esquina inferior izquierda
         valuesMainScreen.triangleX + 3, lineY - 3     // Esquina inferior derecha
         );
-        u8g2_1.drawLine(10, 43, 117, 43);
-        u8g2_1.drawPixel(10, 44);
-        u8g2_1.drawPixel(117, 44);
-        u8g2_1.drawLine(10, 45, 117, 45);
-        // u8g2_1.drawBox(0, 44, 15, 20); // Dibuja un recuadro (x, y, ancho, alto)
-        // u8g2_1.setFont(u8g2_font_6x13B_tf); // FUENTE MUY JUNTA
+        // ----------- Linea divisora
+        ptrScreen.drawLine(10, 43, 117, 43);
+        ptrScreen.drawPixel(10, 44);
+        ptrScreen.drawPixel(117, 44);
+        ptrScreen.drawLine(10, 45, 117, 45);
 
-        // u8g2_1.drawBox(47, 46, 28, 18); // Dibuja un rectángulo negro donde estará el text
-
-        u8g2_1.setFont(u8g2_font_tiny5_tf);
-        u8g2_1.setCursor(48, 64);
-        u8g2_1.print("TIEMPO");
+        // ----------- Tempo
+        ptrScreen.setFont(u8g2_font_tiny5_tf);
+        ptrScreen.setCursor(51, 64);
+        ptrScreen.print("TIEMPO");
         
-        u8g2_1.setFont(u8g2_font_prospero_bold_nbp_tn);
-        // u8g2_1.setFont(u8g2_font_Born2bSportyV2_tr);
-        u8g2_1.setCursor(51, 57);
-        // u8g2_1.setFont(u8g2_font_t0_17b_tf); // posible fuente para quedarse
-        // u8g2_1.setFont(u8g2_font_profont17_tf); // FINAL
-        // u8g2_1.setFont(u8g2_font_koleeko_tn); //  fuente muy buena para números
-        u8g2_1.print(valuesMainScreen.bpm);
-        // u8g2_1.drawLine(4, 64, 20, 127)
+        ptrScreen.setFont(u8g2_font_prospero_bold_nbp_tn);
 
-        // u8g2_1.setFont(u8g2_font_Born2bSportyV2_tr);
-        // u8g2_1.setCursor(4, 60);
-        // u8g2_1.print("01 - 1");
+        // Convierte el valor uint8_t a texto
+        sprintf(buffer, "%u", valuesMainScreen.bpm); // Convierte el número a string
+
+        // Calcula el ancho del texto
+        textWidth = ptrScreen.getUTF8Width(buffer);
+
+        // Calcula la posición horizontal para centrar
+        x = (128 - textWidth) / 2; // 128 es el ancho de la pantalla
+
+        // Configura el cursor en la posición calculada
+        ptrScreen.setCursor(x, 57);
+
+        // Dibuja el texto en la pantalla
+        ptrScreen.print(buffer);
+
+        // ----------- Variación
+        paintVariation();
+
+    } while (ptrScreen.nextPage());
+}
+
+void UI::paintVariation() {
+    // ----------- Variaciones directas de secuencia.
+    ptrScreen.setCursor(6, 52);
+    ptrScreen.setFont(u8g2_font_threepix_tr);
+    ptrScreen.print("VARIACION");
+
+    ptrScreen.setFont(u8g2_font_tom_thumb_4x6_mf);
+
+    const uint8_t distanceVariants = 8;
+    uint8_t pxCurrentVariant = 7;
+    // const uint8_t distanceVariants = 8;
+    for (uint8_t variation = 1; variation <= 5; variation++) {
+        if (valuesMainScreen.currentVariationIndex == variation) {
+            ptrScreen.drawBox(pxCurrentVariant - 2, 54, 7, 7); // Dibuja un rectángulo negro donde estará el text
+            ptrScreen.setDrawColor(0); // Color de dibujo blanco
+            ptrScreen.setCursor(pxCurrentVariant, 60);
+            ptrScreen.print(variation);
+            pxCurrentVariant += distanceVariants;
+            ptrScreen.setDrawColor(1); // Color de dibujo negro
+        }
+        else {
+            ptrScreen.setCursor(pxCurrentVariant, 60);
+            ptrScreen.print(variation);
+            pxCurrentVariant += distanceVariants;
+        }
+    }
+    
+
+    // ptrScreen.setCursor(4, 60);
+    // ptrScreen.print("1");
+
+    // ptrScreen.setDrawColor(1); // Color de dibujo negro
+
+    // ptrScreen.setCursor(12, 60);
+    // ptrScreen.print("2");
 
 
-    } while (u8g2_1.nextPage());
+    // ptrScreen.setCursor(20, 60);
+    // ptrScreen.print("3");
+
+    // ptrScreen.setCursor(28, 60);
+    // ptrScreen.print("4");
+
+    // ptrScreen.setCursor(36, 60);
+    // ptrScreen.print("5");
 }

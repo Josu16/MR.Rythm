@@ -22,6 +22,9 @@ struct MainScreen{  // TODO: revisar el nombre final respecto a los nombres de l
     uint8_t denominator;
     volatile uint32_t triangleX = 10;
     volatile uint8_t bpm;
+    volatile uint8_t currentBlack = 1;
+    volatile uint8_t currentMeasure = 1;
+    volatile uint8_t currentVariationIndex = 1;
 };
 
 class UI {
@@ -29,8 +32,8 @@ class UI {
         MainScreen &valuesMainScreen;
 
        // Configura las pantallas usando Hardware SPI en lugar de Software SPI
-        U8G2_ST7565_ERC12864_1_4W_HW_SPI u8g2;
-        U8G2_ST7565_ERC12864_1_4W_HW_SPI u8g2_1;
+        U8G2_ST7565_ERC12864_1_4W_HW_SPI playScreen;
+        U8G2_ST7565_ERC12864_1_4W_HW_SPI ptrScreen;
 
         // long patronIndex = 1;
         int ultimopatronIndex = -1;
@@ -45,7 +48,11 @@ class UI {
         UI(MainScreen &values);  // revisar como actualizar cuando entre a otra perspectiva de pantalla (ej. configuración)
         void changeViewScreen();
 
-        void refresh_ui();
+        void refreshUi();
+        void refreshPlayScreen();
+        void refreshPtrnScreen();
+
+        void paintVariation();
 };
 
 #endif

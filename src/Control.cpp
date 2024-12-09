@@ -5,7 +5,8 @@ Control* Control::instance = nullptr;
 Control::Control(volatile long tempo, volatile long pattern)
     :
     bpmRE(pinA1Re, pinB1Re, tempo, 20, 300),
-    ptrnRE(pinA2Re, pinB2Re, pattern, 1, 10) // TODO: revisar el parámetro long. corrgir.
+    ptrnRE(pinA2Re, pinB2Re, pattern, 1, 10), // TODO: revisar el parámetro long. corrgir.
+    variantRE(pinA3Re, pinB3Re, pattern, 1, 5) // TODO: revisar el parámetro long. corrgir.
 {
     // FootSwitch
     pinMode(pinFw, INPUT_PULLUP);
@@ -32,6 +33,14 @@ long Control::readPtrn() {
 void Control::setPtrn(int newValue) {
     ptrnRE.setPosition(newValue);
 }
+
+void Control::setVariant(int newValue) {
+    variantRE.setPosition(newValue);
+}
+
+long Control::readVariant() {
+    return variantRE.getPosition();
+} 
 
 void Control::fwISR() {
     if (instance) {
