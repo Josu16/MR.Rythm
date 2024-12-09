@@ -27,7 +27,7 @@ class ABRSequencer {
         Pattern pattern;
 
         // Configuraión de variables para la reproducción (Máquina de Estados Finitos)
-        unsigned int patternLength;
+        unsigned int patternLength;  // número de eventos midi por patrón
         enum SequencerState {
             STOPPED,    // Parado
             PLAYING    // Reproduciendo
@@ -57,7 +57,7 @@ class ABRSequencer {
 
 
     public:
-        ABRSequencer(/*int pinARe, int pinbRe, int pinFw, long bpm, volatile uint32_t *triangleX*/uint8_t PPQN);
+        ABRSequencer(uint8_t PPQN);
         void beginSequencer();
         void readAllPatterns();
         void onTimer();

@@ -22,7 +22,7 @@ struct MainScreen{  // TODO: revisar el nombre final respecto a los nombres de l
     uint8_t denominator;
     volatile uint32_t triangleX = 10;
     volatile uint8_t bpm;
-    volatile uint8_t currentBlack = 1;
+    volatile uint8_t currentBlack = 0;
     volatile uint8_t currentMeasure = 1;
     volatile uint8_t currentVariationIndex = 1;
 };

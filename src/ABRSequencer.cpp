@@ -4,7 +4,7 @@
 
 ABRSequencer* ABRSequencer::instance = nullptr;
 
-ABRSequencer::ABRSequencer(/*int pinARe, int pinbRe, int pinFw, long bpm, volatile uint32_t *triangleX*/ uint8_t PPQN)
+ABRSequencer::ABRSequencer(uint8_t PPQN)
     :
     controls(120, 1), // tempo por defecto
     screens(valuesMainScreen),
@@ -112,7 +112,8 @@ void ABRSequencer::onTimer() {
             // Encender el LED en cada nota negra
             digitalWrite(playLed, HIGH);
             playledState = true;
-            playLedOffTick = currentTick + 24; // Apagar el LED después de 24 ticks
+            playLedOffTick = currentTick + 16; // Apagar el LED después de 24 ticks
+            valuesMainScreen.currentBlack ++;
         }
         if (playledState && currentTick >= playLedOffTick) {
             // Apagar el LED después de 24 ticks
@@ -132,6 +133,10 @@ void ABRSequencer::onTimer() {
                 Serial7.write(pattern.events[indexEvent].velocity);
             }
         }
+        if (valuesMainScreen.currentBlack > pattern.numerator) {
+            valuesMainScreen.currentMeasure ++;
+            valuesMainScreen.currentBlack = 1;
+        }
         updateTrianglePosition();
 
         currentTick++;  // Incrementa el contador de ticks
@@ -139,6 +144,8 @@ void ABRSequencer::onTimer() {
         // Reinicia el patrón después de 384 ticks (4/4 en 96 PPQN)
         if (currentTick >= pattern.totalTicks) {
             currentTick = 0;  // Reinicia los ticks
+            valuesMainScreen.currentBlack = 0;
+            valuesMainScreen.currentMeasure = 1;
         }
     }
 }
@@ -206,15 +213,16 @@ void ABRSequencer::transitionToState(SequencerState newState) {
         case STOPPED:
             // Lógica para detener la reproducción
             currentTick = 0;
+            valuesMainScreen.currentBlack = 0;
+            valuesMainScreen.currentMeasure = 1;
             digitalWrite(playLed, LOW);
             allNotesOff(1);
-            Serial.println("Transitioned to STOPPED");
+            updateTrianglePosition();
             break;
 
         case PLAYING:
             // Lógica para iniciar reproducción
             updateTimerInterval(); // Actualiza el intervalo del timer
-            Serial.println("Transitioned to PLAYING");
             break;
     }
 

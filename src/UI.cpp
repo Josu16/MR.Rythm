@@ -110,7 +110,9 @@ void UI::refreshPtrnScreen() {
         // ----------- Conteo de compases
         ptrScreen.setFont(u8g2_font_04b_03b_tr);
         ptrScreen.setCursor(73, 17);
-        ptrScreen.print("001 - ");
+        snprintf(buffer, sizeof(buffer), "%03d", valuesMainScreen.currentMeasure);
+        ptrScreen.print(buffer);
+        ptrScreen.print(" - ");
         ptrScreen.print(valuesMainScreen.currentBlack);
 
         // ----------- Triángulo de secuencia
