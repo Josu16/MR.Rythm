@@ -193,6 +193,9 @@ void ABRSequencer::loop() {
             initializePattern();
         }
     }
+    else if (valuesMainScreen.waitingForChangePtrn ) { // se arrepitió de cambiar el patrón
+        valuesMainScreen.waitingForChangePtrn = false;
+    }
 
     // Verificar cambio de variante
     valuesMainScreen.currentVariationIndex = controls.readVariant();
