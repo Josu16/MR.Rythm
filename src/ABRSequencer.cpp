@@ -58,7 +58,9 @@ void ABRSequencer::initializePattern() {
 
     // secuenciación 
     currentTick = 0;
-    lastBpm = pattern.tempo;
+    // lastBpm = pattern.tempo;
+    lastBpm = (loockTempo) ? lastBpm : pattern.tempo;
+
     valuesMainScreen.bpm = lastBpm;
     // isPlaying = playing;
     valuesMainScreen.measures = pattern.measures;
@@ -146,6 +148,9 @@ void ABRSequencer::onTimer() {
             currentTick = 0;  // Reinicia los ticks
             valuesMainScreen.currentBlack = 0;
             valuesMainScreen.currentMeasure = 1;
+            if (valuesMainScreen.waitingForChangePtrn == true) {
+                autoChangePtrn = true;
+            }
         }
     }
 }
@@ -158,8 +163,6 @@ void ABRSequencer::updateBpm() {
         lastBpm = valuesMainScreen.bpm;         // Actualiza el valor de BPM previo
     }
 }
-
-
 
 void ABRSequencer::loop() {
     // Actualizaciones de pantallas.
@@ -176,11 +179,19 @@ void ABRSequencer::loop() {
             transitionToState(PLAYING);
     }
 
-    // Verificar cambio de patrón (Radical MODE)
+    // Verificar cambio de patrón
     valuesMainScreen.numberPtrn = controls.readPtrn();
     if (valuesMainScreen.numberPtrn != lastPtrn) {
-        lastPtrn = valuesMainScreen.numberPtrn;
-        initializePattern();
+        if (valuesMainScreen.waitingForChangePtrn == false && currentState == PLAYING) {  // cambio en Soft MODE
+            valuesMainScreen.waitingForChangePtrn = true;
+        } else if (autoChangePtrn || currentState == STOPPED){
+            lastPtrn = valuesMainScreen.numberPtrn;
+            valuesMainScreen.waitingForChangePtrn = false;
+            autoChangePtrn = false;
+            valuesMainScreen.currentBlack = 0;
+            valuesMainScreen.currentMeasure = 1;
+            initializePattern();
+        }
     }
 
     // Verificar cambio de variante

@@ -33,6 +33,8 @@ class ABRSequencer {
             PLAYING    // Reproduciendo
         };
         volatile SequencerState currentState = STOPPED; // Estado inicial
+        bool loockTempo = false;
+        volatile bool autoChangePtrn = false;
 
         // Controles
         Control controls;

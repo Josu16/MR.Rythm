@@ -66,13 +66,28 @@ void UI::refreshPlayScreen() {
 void UI::refreshPtrnScreen() {
     ptrScreen.firstPage();
     do {
-        //  ----------- NOMBRE DEL PATRÓN (centrado)
-        ptrScreen.setFont(u8g2_font_crox4t_tf); // opción má acertada
-        int16_t textWidth = ptrScreen.getUTF8Width(valuesMainScreen.namePtrn);
-        // Calcula la posición horizontal para centrar
-        int16_t x = (128 - textWidth) / 2; // 128 es el ancho de la pantalla
-        ptrScreen.setCursor(x, 35); // Cambia "55" si necesitas ajustar la posición vertical
-        ptrScreen.print(valuesMainScreen.namePtrn);
+        int16_t textWidth, x;
+
+        if (valuesMainScreen.waitingForChangePtrn == true) {
+            ptrScreen.drawBox(0, 20, 127, 18); // Dibuja un rectángulo negro donde estará el text
+            ptrScreen.setDrawColor(0); // Color de dibujo blanco
+            //  ----------- NOMBRE DEL PATRÓN (centrado)
+            ptrScreen.setFont(u8g2_font_t0_17b_me); // perfecta para 14 cara
+            textWidth = ptrScreen.getUTF8Width(valuesMainScreen.namePtrn);
+            // Calcula la posición horizontal para centrar
+            x = (128 - textWidth) / 2; // 128 es el ancho de la pantalla
+            ptrScreen.setCursor(x, 34); // Cambia "55" si necesitas ajustar la posición vertical
+            ptrScreen.print(valuesMainScreen.namePtrn);
+            ptrScreen.setDrawColor(1); // Color de dibujo negro
+        } else {
+            //  ----------- NOMBRE DEL PATRÓN (centrado)
+            ptrScreen.setFont(u8g2_font_t0_17b_me); // perfecta para 14 cara
+            textWidth = ptrScreen.getUTF8Width(valuesMainScreen.namePtrn);
+            // Calcula la posición horizontal para centrar
+            x = (128 - textWidth) / 2; // 128 es el ancho de la pantalla
+            ptrScreen.setCursor(x, 34); // Cambia "55" si necesitas ajustar la posición vertical
+            ptrScreen.print(valuesMainScreen.namePtrn);
+        }
 
         // ----------- número del patrón
         ptrScreen.setFont(u8g2_font_luBS18_tf);
@@ -118,7 +133,7 @@ void UI::refreshPtrnScreen() {
         // ----------- Triángulo de secuencia
         ptrScreen.drawTriangle(
         valuesMainScreen.triangleX, lineY,    // Vértice superior
-        valuesMainScreen.triangleX - 3, lineY - 3,    // Esquina inferior izquierda
+        valuesMainScreen.triangleX - 2, lineY - 3,    // Esquina inferior izquierda
         valuesMainScreen.triangleX + 3, lineY - 3     // Esquina inferior derecha
         );
         // ----------- Linea divisora
