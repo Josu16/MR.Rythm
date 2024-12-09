@@ -26,9 +26,13 @@ class ABRSequencer {
 
         Pattern pattern;
 
-        // Configuraión de variables para la reproducción
+        // Configuraión de variables para la reproducción (Máquina de Estados Finitos)
         unsigned int patternLength;
-        volatile bool isPlaying;
+        enum SequencerState {
+            STOPPED,    // Parado
+            PLAYING    // Reproduciendo
+        };
+        volatile SequencerState currentState = STOPPED; // Estado inicial
 
         // Controles
         Control controls;
@@ -60,10 +64,10 @@ class ABRSequencer {
         void updateTimerInterval();
         void updateBpm();
         void loop(); // Método para manejar actualizaciones en el loop principal
-        void initializePattern(bool playing = false);
-        uint32_t getCurrentTick();
+        void initializePattern();
         void updateTrianglePosition();
         void allNotesOff(uint8_t channel);
+        void transitionToState(SequencerState newState);
 };
 
 #endif

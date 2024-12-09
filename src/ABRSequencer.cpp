@@ -32,7 +32,7 @@ void ABRSequencer::readAllPatterns() {
     parser.getAvailablePatterns();
 }
 
-void ABRSequencer::initializePattern(bool playing) {
+void ABRSequencer::initializePattern() {
 
     parser.parseFile(controls.readPtrn());
     // Copia segura del nuevo nombre
@@ -60,7 +60,7 @@ void ABRSequencer::initializePattern(bool playing) {
     currentTick = 0;
     lastBpm = pattern.tempo;
     valuesMainScreen.bpm = lastBpm;
-    isPlaying = playing;
+    // isPlaying = playing;
     valuesMainScreen.measures = pattern.measures;
     valuesMainScreen.numerator  = pattern.numerator;
     valuesMainScreen.denominator = pattern.denominator;
@@ -103,7 +103,7 @@ void ABRSequencer::timerCallback() {
 void ABRSequencer::onTimer() {
     // Esta función se ejecuta cada 5208 microsegundos (cuando el tempo está a 120)
 
-    if (!isPlaying){
+    if (currentState == STOPPED){
 
     }
     else {
@@ -163,34 +163,21 @@ void ABRSequencer::loop() {
 
     // Verificar cambios en el estado del footswitch
     if (controls.checkForFootswitch()) {
-        isPlaying = !isPlaying;
-        if (!isPlaying) {
-            // Detener la secuencia
-            currentTick = 0;  // Reinicia los ticks
-            digitalWrite(playLed, LOW);
-            allNotesOff(1);
-            // Serial.println("Secuencia detenida.");
-        }
+        if (currentState == PLAYING)
+            transitionToState(STOPPED);
+        else
+            transitionToState(PLAYING);
     }
 
     // Verificar cambio de patrón (Radical MODE)
     valuesMainScreen.numberPtrn = controls.readPtrn();
     if (valuesMainScreen.numberPtrn != lastPtrn) {
         lastPtrn = valuesMainScreen.numberPtrn;
-        // Detener todo evento midi mandado.
-        allNotesOff(1);
-        // Obterner el patrón
-        Serial.print("Patrón: ");
-        Serial.println(controls.readPtrn());
-        initializePattern(isPlaying);
+        initializePattern();
     }
 
     // Verificar cambio de variante
     valuesMainScreen.currentVariationIndex = controls.readVariant();
-}
-
-uint32_t ABRSequencer::getCurrentTick() {
-    return currentTick;
 }
 
 void ABRSequencer::updateTrianglePosition() {
@@ -212,4 +199,25 @@ void ABRSequencer::allNotesOff(uint8_t channel) {
     Serial7.write(status);   // Enviar el Status byte
     Serial7.write(controller); // Enviar el número de controlador
     Serial7.write(value);    // Enviar el valor (0)
+}
+
+void ABRSequencer::transitionToState(SequencerState newState) {
+    switch (newState) {
+        case STOPPED:
+            // Lógica para detener la reproducción
+            currentTick = 0;
+            digitalWrite(playLed, LOW);
+            allNotesOff(1);
+            Serial.println("Transitioned to STOPPED");
+            break;
+
+        case PLAYING:
+            // Lógica para iniciar reproducción
+            updateTimerInterval(); // Actualiza el intervalo del timer
+            Serial.println("Transitioned to PLAYING");
+            break;
+    }
+
+    // Actualiza el estado actual
+    currentState = newState;
 }
