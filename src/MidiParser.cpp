@@ -2,7 +2,7 @@
 #include <SdFat.h>
 #include <math.h>
 
-MidiParser::MidiParser(std::vector<String> &files, Pattern& pattern)
+MidiParser::MidiParser(std::vector<MidiFile> &files, Pattern& pattern)
 :
     midiFiles(files),
     currentPattern(pattern)
@@ -32,14 +32,41 @@ void MidiParser::getAvailablePatterns() {
         return;
     }
 
-    // // midiFile = sd.open(filename, FILE_READ);
     while (midiFile.openNext(&dir, O_READ)) {
         char fileName[30];
         midiFile.getName(fileName, sizeof(fileName));
+        MidiFile fileInfo;
 
         // Verifica si la extensión es .mid (case insensitive)
         if (strstr(fileName, ".mid") || strstr(fileName, ".MID")) {
-            midiFiles.push_back(String(fileName)); // Agrega al vector
+            // midiFiles.push_back(String(fileName)); // Agrega al vector
+            fileInfo.midiFile = fileName;
+            // Encuentra el guion para extraer el nombre del patrón
+            char* dashPosition = strchr(fileName, '-');
+            if (dashPosition != nullptr) {
+                // Avanza después del guion
+                char* patternNameStart = dashPosition + 1;
+
+                // Encuentra el punto antes de la extensión
+                char* dotPosition = strchr(patternNameStart, '.');
+                size_t nameLength = 14; // Longitud máxima para el nombre
+
+                if (dotPosition != nullptr) {
+                    // Calcula la longitud real del nombre antes del punto
+                    nameLength = dotPosition - patternNameStart;
+                }
+
+                // Limita la longitud al máximo permitido
+                nameLength = nameLength > 14 ? 14 : nameLength;
+
+                // Extrae el nombre del patrón sin la extensión
+                char patternName[15] = {0}; // Espacio para 14 caracteres + terminador nulo
+                strncpy(patternName, patternNameStart, nameLength);
+
+                // Agrega el nombre del patrón al vector
+                fileInfo.patternName = String(patternName);
+                midiFiles.push_back(fileInfo);
+            }
         }
 
         midiFile.close(); // Cierra el archivo actual
@@ -47,12 +74,15 @@ void MidiParser::getAvailablePatterns() {
     dir.close(); // Cierra el directorio
 
     // Ordena los archivos alfabéticamente
-    std::sort(midiFiles.begin(), midiFiles.end());
+    std::sort(midiFiles.begin(), midiFiles.end(), [](const MidiFile& a, const MidiFile& b) {
+        return a.midiFile < b.midiFile; // Orden ascendente por nombre de archivo
+    });
 
     // Imprime la lista ordenada
     Serial.println("Archivos MIDI en /patterns:");
     for (size_t i = 0; i < midiFiles.size(); ++i) {
-        Serial.println(midiFiles[i]);
+        Serial.println(midiFiles[i].patternName);
+        Serial.println(midiFiles[i].midiFile);
     }
 }
 
@@ -239,18 +269,21 @@ void MidiParser::parseTrack()
                     Serial.print("Ultimo tick: ");
                     float lastTick = (currentTick * sequencerPPQN) / resolutionFile;
                     uint8_t qn = ((uint8_t)round(lastTick/sequencerPPQN));
-                    currentPattern.measures = qn/currentPattern.numerator; 
+                    currentPattern.measures = qn/currentPattern.numerator;
                     currentPattern.totalTicks = qn * sequencerPPQN;
                     Serial.println(currentPattern.measures);
                     Serial.println(currentPattern.totalTicks);
                     // Serial.r
+                    // Guardar el nombre del patrón desde el archivo
+                    strncpy(currentPattern.tackName, midiFiles[patternIndex-1].patternName.c_str(), sizeof(currentPattern.tackName) - 1);
+                    currentPattern.tackName[sizeof(currentPattern.tackName) - 1] = '\0'; // Asegurar terminación nula
                 }
             }
         }
     }
 }
 
-bool MidiParser::parseFile(int ptrnIndex)
+bool MidiParser::parseFile(unsigned int ptrnIndex)
 {
     numRealEvents = 0;
     // VALIDACIÓN DE EXISTENCIA DE SECUENCIA EN EL ÍNDICE
@@ -260,10 +293,11 @@ bool MidiParser::parseFile(int ptrnIndex)
         }
         currentPattern.tempo = 120;
         currentPattern.totalTicks = 384;
-        
+
         return false; // no hay más archivos
     } else {
-        String fullPath = String(directoryPath) + "/" + midiFiles[ptrnIndex-1]; 
+        this -> patternIndex = ptrnIndex;
+        String fullPath = String(directoryPath) + "/" + midiFiles[ptrnIndex-1].midiFile;
         const char* filePath = fullPath.c_str(); // Convierte a const char* para SdFat
         Serial.println(filePath); // Imprime la ruta completa para depuración
         midiFile = sd.open(filePath, FILE_READ);
@@ -300,14 +334,14 @@ void MidiParser::handleMetaEvent(uint8_t type, uint32_t length)
             break;
         }
         case 0x03:
-        { // Track name (en logic es el nombre del pasaje midi no de la pista)  
+        { // Track name (en logic es el nombre del pasaje midi no de la pista)
             uint8_t indexName = 0;
             // Limpieza del arreglo antes de copiar
             for (size_t i = 0; i < 15; i++) {
                 currentPattern.tackName[i] = '\0';
             }
             while (indexName < 15 && indexName < length) {
-                currentPattern.tackName[indexName] = midiFile.read();   
+                currentPattern.tackName[indexName] = midiFile.read();
                 indexName ++;
             }
             if (length > 15) {

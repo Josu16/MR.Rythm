@@ -38,6 +38,7 @@ class ABRSequencer {
 
         // Controles
         Control controls;
+        uint8_t ptrnChangedAgain = 0;
 
         // Indicadores
         const int playLed = 14;
@@ -55,7 +56,8 @@ class ABRSequencer {
 
         // Parser
         MidiParser parser;
-        std::vector<String> midiFiles; // Contenedor para los nombres de archivos
+        // std::vector<String> midiFiles; // Contenedor para los nombres de archivos
+        std::vector<MidiFile> midiFiles;
 
 
     public:

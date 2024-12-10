@@ -22,6 +22,11 @@ struct Pattern {
     MidiEvent events[1000];
 };
 
+struct MidiFile {
+    String midiFile;     // Nombre completo del archivo
+    String patternName;  // Nombre del patrón
+};
+
 
 class MidiParser {
     private:
@@ -33,8 +38,9 @@ class MidiParser {
         uint8_t lastStatusByte;
 
         const char* directoryPath = "/patterns"; // Ruta del directorio
-        std::vector<String> &midiFiles; // Contenedor para los nombres de archivos
+        std::vector<MidiFile> &midiFiles;
         Pattern &currentPattern;
+        unsigned int patternIndex = 1;
 
         uint32_t readVLQ();
         bool parseHeader();
@@ -43,8 +49,8 @@ class MidiParser {
         void handleMidiEvent(uint8_t status, uint8_t note, uint8_t velocity, uint32_t currentTick);
 
     public:
-        MidiParser(std::vector<String> &files, Pattern& currentPattern);
-        bool parseFile(int ptrnIndex);
+        MidiParser(std::vector<MidiFile> &files, Pattern& currentPattern);
+        bool parseFile(unsigned int ptrnIndex);
         uint16_t getNumEvents();
         void getAvailablePatterns();
 };

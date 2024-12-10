@@ -182,9 +182,16 @@ void ABRSequencer::loop() {
     // Verificar cambio de patrón
     valuesMainScreen.numberPtrn = controls.readPtrn();
     if (valuesMainScreen.numberPtrn != lastPtrn) {
-        if (valuesMainScreen.waitingForChangePtrn == false && currentState == PLAYING) {  // cambio en Soft MODE
+        if ((valuesMainScreen.waitingForChangePtrn == false && currentState == PLAYING) ||
+            (ptrnChangedAgain != valuesMainScreen.numberPtrn && valuesMainScreen.waitingForChangePtrn == true && currentState == PLAYING)) {  // cambio en Soft MODE
             valuesMainScreen.waitingForChangePtrn = true;
-        } else if (autoChangePtrn || currentState == STOPPED){
+            ptrnChangedAgain = valuesMainScreen.numberPtrn;
+            if (midiFiles.size() >= valuesMainScreen.numberPtrn)
+                strncpy(valuesMainScreen.namePtrn, midiFiles[valuesMainScreen.numberPtrn-1].patternName.c_str(), 14);
+            else
+                strncpy(valuesMainScreen.namePtrn, "", 14);
+        } 
+        else if (autoChangePtrn || currentState == STOPPED) {
             lastPtrn = valuesMainScreen.numberPtrn;
             valuesMainScreen.waitingForChangePtrn = false;
             autoChangePtrn = false;
@@ -195,6 +202,7 @@ void ABRSequencer::loop() {
     }
     else if (valuesMainScreen.waitingForChangePtrn ) { // se arrepitió de cambiar el patrón
         valuesMainScreen.waitingForChangePtrn = false;
+        strncpy(valuesMainScreen.namePtrn, midiFiles[valuesMainScreen.numberPtrn-1].patternName.c_str(), 14);
     }
 
     // Verificar cambio de variante
