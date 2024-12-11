@@ -59,7 +59,7 @@ void ABRSequencer::initializePattern() {
     // secuenciación 
     currentTick = 0;
     // lastBpm = pattern.tempo;
-    lastBpm = (loockTempo) ? lastBpm : pattern.tempo;
+    lastBpm = (valuesMainScreen.loockTempo) ? lastBpm : pattern.tempo;
 
     valuesMainScreen.bpm = lastBpm;
     // isPlaying = playing;
@@ -178,6 +178,8 @@ void ABRSequencer::loop() {
         else
             transitionToState(PLAYING);
     }
+
+    valuesMainScreen.loockTempo = controls.cheeckForLoockTempo();
 
     // Verificar cambio de patrón
     valuesMainScreen.numberPtrn = controls.readPtrn();

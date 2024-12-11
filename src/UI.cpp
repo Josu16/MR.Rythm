@@ -151,18 +151,23 @@ void UI::refreshPtrnScreen() {
 
         // Convierte el valor uint8_t a texto
         sprintf(buffer, "%u", valuesMainScreen.bpm); // Convierte el número a string
-
         // Calcula el ancho del texto
         textWidth = ptrScreen.getUTF8Width(buffer);
-
         // Calcula la posición horizontal para centrar
         x = (128 - textWidth) / 2; // 128 es el ancho de la pantalla
-
         // Configura el cursor en la posición calculada
         ptrScreen.setCursor(x, 57);
 
+        if (valuesMainScreen.loockTempo) {
+            ptrScreen.drawBox(51, 47, 26, 11); // Dibuja un rectángulo negro donde estará el text
+            ptrScreen.setDrawColor(0); // Color de dibujo blanco
+            ptrScreen.print(buffer);
+            ptrScreen.setDrawColor(1); // Color de dibujo blanco
+        }
+        else {
+            ptrScreen.print(buffer);
+        }
         // Dibuja el texto en la pantalla
-        ptrScreen.print(buffer);
 
         // ----------- Variación
         paintVariation();
@@ -196,23 +201,4 @@ void UI::paintVariation() {
             pxCurrentVariant += distanceVariants;
         }
     }
-    
-
-    // ptrScreen.setCursor(4, 60);
-    // ptrScreen.print("1");
-
-    // ptrScreen.setDrawColor(1); // Color de dibujo negro
-
-    // ptrScreen.setCursor(12, 60);
-    // ptrScreen.print("2");
-
-
-    // ptrScreen.setCursor(20, 60);
-    // ptrScreen.print("3");
-
-    // ptrScreen.setCursor(28, 60);
-    // ptrScreen.print("4");
-
-    // ptrScreen.setCursor(36, 60);
-    // ptrScreen.print("5");
 }

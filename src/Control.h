@@ -11,9 +11,14 @@ const int pinFw = 41;
 
 const int pinA2Re = 4;
 const int pinB2Re = 5;
+const int pinLoockTempo = 40;
 
 const int pinA3Re = 6;
 const int pinB3Re = 7;
+const int pinLoockVariation = 39;
+
+// switches
+
 // TEMPORALES, ESTAS SE MOVERÁN PRONTO
 
 class Control {
@@ -28,13 +33,17 @@ class Control {
         RotaryEncoder variantRE;
         // long positionVariantRE = 1;
 
-        // switches
-        int pinFw = 41;
 
         volatile bool footswitchState;
         volatile bool footswitchChanged;
-        volatile unsigned long lastDebounceTime;
+        volatile unsigned long lastDebounceTime = 0;
         const unsigned long debounceDelay = 200;  // Tiempo de debounce en milisegundos
+
+        volatile bool loockTempoTriggered;
+        bool loockTempoState;
+        volatile bool loockTempoChanged;
+        unsigned long lastDebounceTimeTempo = 0;
+        const unsigned long debounceDelayTempo = 400;  // Tiempo de debounce en milisegundos
 
         // Referencia estática a la instancia actual
         static Control* instance;
@@ -49,6 +58,7 @@ class Control {
         long readPtrn();
         long readVariant();
         bool checkForFootswitch();
+        bool cheeckForLoockTempo();
         
         // Seteo de controles
         void setBpm(int newValue);
@@ -59,6 +69,9 @@ class Control {
         // footswitches
         static void fwISR();
         void handleFootswitchInterrupt();
+        
+        static void loockTempoISR();
+        void handleLoockTempooInterrupt();
 };
 
 #endif

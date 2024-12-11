@@ -26,6 +26,7 @@ struct MainScreen{  // TODO: revisar el nombre final respecto a los nombres de l
     volatile uint8_t currentMeasure = 1;
     volatile uint8_t currentVariationIndex = 1;
     volatile bool waitingForChangePtrn = false;
+    bool loockTempo = false;
 };
 
 class UI {
