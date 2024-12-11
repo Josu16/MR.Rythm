@@ -20,7 +20,34 @@ MidiParser::MidiParser(std::vector<MidiFile> &files, Pattern& pattern)
     //     Serial.println("Error abriendo archivo MIDI");
     // }
     // Serial.println("Archivo abierto correctamente");
+    setupNoteToChannelMapping();
 
+}
+
+// Inicializar la tabla
+void MidiParser::setupNoteToChannelMapping() {
+    // Inicializar todas las notas como "sin canal asignado"
+    for (int i = 0; i < 128; ++i) {
+        noteToChannel[i] = -1; // -1 indica que la nota no está asignada
+    }
+
+    // Asignar notas al canal 9
+    int channel9Notes[] = {35, 36, 37, 38, 39, 40, 41, 42, 44, 45, 46, 48, 49, 50, 51, 52, 53, 55, 56, 57};
+    for (int note : channel9Notes) {
+        noteToChannel[note] = 8; // CANAL 9
+    }
+
+    // Asignar notas al canal 10
+    int channel10Notes[] = {54, 59, 60, 61, 62, 63, 64, 69, 70, 82, 84, 89, 90, 91, 92, 93, 94, 95, 96, 97};
+    for (int note : channel10Notes) {
+        noteToChannel[note] = 9; // CANAL 10
+    }
+
+    // Asignar notas al canal 11
+    int channel11Notes[] = {58, 65, 66, 67, 68, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 83, 85, 86, 87};
+    for (int note : channel11Notes) {
+        noteToChannel[note] = 10; // CANAL 11
+    }
 }
 
 void MidiParser::getAvailablePatterns() {
@@ -38,7 +65,7 @@ void MidiParser::getAvailablePatterns() {
         MidiFile fileInfo;
 
         // Verifica si la extensión es .mid (case insensitive)
-        if (strstr(fileName, ".mid") || strstr(fileName, ".MID")) {
+        if ((strstr(fileName, ".mid") || strstr(fileName, ".MID")) && !strstr(fileName, "._")) {
             // midiFiles.push_back(String(fileName)); // Agrega al vector
             fileInfo.midiFile = fileName;
             // Encuentra el guion para extraer el nombre del patrón
@@ -375,16 +402,26 @@ void MidiParser::handleMetaEvent(uint8_t type, uint32_t length)
 
 void MidiParser::handleMidiEvent(uint8_t status, uint8_t note, uint8_t velocity, uint32_t currentTick)
 {
+    // Obtener el canal de destino usando la tabla de mapeo
+    int targetChannel = noteToChannel[note];
+
+    // Los 4 bits MSB (tipo de mensaje) se quedan iguales
+    uint8_t messageType = status & 0xF0;
+
+    // Los 4 bits LSB (canal) se reemplazan con el nuevo canal
+    uint8_t newStatus = messageType | (targetChannel & 0x0F);
+
     MidiEvent event;
-    event.type = (status & 0xF0);
+    event.type = newStatus; //(status & 0xF0);
     event.note = note;
     event.velocity = velocity;
     event.tick = (currentTick * sequencerPPQN) / resolutionFile;
 
     // Debug: Mostrar información del canal
+    uint8_t midiChannel = (newStatus & 0x0F); // Convertir de rango 0-15 a 1-16
 
     Serial.print("Canal: ");
-    Serial.print(status & 0x0F);
+    Serial.print(midiChannel);
     Serial.print(", Nota: ");
     Serial.print(note);
     Serial.print(", Velocidad: ");

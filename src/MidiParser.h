@@ -42,6 +42,9 @@ class MidiParser {
         Pattern &currentPattern;
         unsigned int patternIndex = 1;
 
+        int noteToChannel[128];
+
+        void setupNoteToChannelMapping();
         uint32_t readVLQ();
         bool parseHeader();
         void parseTrack();

@@ -238,7 +238,9 @@ void ABRSequencer::transitionToState(SequencerState newState) {
             valuesMainScreen.currentBlack = 0;
             valuesMainScreen.currentMeasure = 1;
             digitalWrite(playLed, LOW);
-            allNotesOff(1);
+            allNotesOff(9);
+            allNotesOff(10);
+            allNotesOff(11);
             updateTrianglePosition();
             break;
 
