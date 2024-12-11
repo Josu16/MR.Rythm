@@ -41,7 +41,7 @@ class UI {
         int ultimopatronIndex = -1;
 
         // volatile uint32_t triangleX = 10; // Posición actual del triángulo
-        const int lineY = 42; // Y de la línea horizontal
+        const int lineY = 41; // Y de la línea horizontal
         
        // methods
        void draw_dotted_line(U8G2 &u8g2, int x1, int y1, int x2, int y2);

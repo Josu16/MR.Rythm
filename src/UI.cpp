@@ -69,14 +69,14 @@ void UI::refreshPtrnScreen() {
         int16_t textWidth, x;
 
         if (valuesMainScreen.waitingForChangePtrn == true) {
-            ptrScreen.drawBox(0, 20, 127, 18); // Dibuja un rectángulo negro donde estará el text
+            ptrScreen.drawBox(0, 19, 127, 18); // Dibuja un rectángulo negro donde estará el text
             ptrScreen.setDrawColor(0); // Color de dibujo blanco
             //  ----------- NOMBRE DEL PATRÓN (centrado)
             ptrScreen.setFont(u8g2_font_t0_17b_me); // perfecta para 14 cara
             textWidth = ptrScreen.getUTF8Width(valuesMainScreen.namePtrn);
             // Calcula la posición horizontal para centrar
             x = (128 - textWidth) / 2; // 128 es el ancho de la pantalla
-            ptrScreen.setCursor(x, 34); // Cambia "55" si necesitas ajustar la posición vertical
+            ptrScreen.setCursor(x, 33); // Cambia "55" si necesitas ajustar la posición vertical
             ptrScreen.print(valuesMainScreen.namePtrn);
             ptrScreen.setDrawColor(1); // Color de dibujo negro
         } else {
@@ -137,10 +137,10 @@ void UI::refreshPtrnScreen() {
         valuesMainScreen.triangleX + 3, lineY - 3     // Esquina inferior derecha
         );
         // ----------- Linea divisora
-        ptrScreen.drawLine(10, 43, 117, 43);
-        ptrScreen.drawPixel(10, 44);
-        ptrScreen.drawPixel(117, 44);
-        ptrScreen.drawLine(10, 45, 117, 45);
+        ptrScreen.drawLine(10, 42, 117, 42);
+        ptrScreen.drawPixel(10, 43);
+        ptrScreen.drawPixel(117, 43);
+        ptrScreen.drawLine(10, 44, 117, 44);
 
         // ----------- Tempo
         ptrScreen.setFont(u8g2_font_tiny5_tf);
