@@ -189,6 +189,8 @@ void MidiParser::parseTrack()
     char trackHeader[4];
     midiFile.read(trackHeader, 4);
 
+    bool rightSFM = true;
+
     Serial.println("-----------");
     Serial.println(trackHeader);
     Serial.println("-----------");
@@ -283,6 +285,8 @@ void MidiParser::parseTrack()
         por tanto sobran 3 bytes antes de llegar al end of track (0xFF, 0x2F, 0x00), a
         continuación se agrega un código extra para ir a buscar ese fin de track manualmente
         posteriormente se va a revisar por qué pasa esto y como resolverlo.
+
+        EN CUBAASE 14 ESTO NO ES UN PROBLEMA, HASTA AHORA SOLO EN LOGIC POR X 10.7.4
     */
 
     // ir a la búsqueda del EOT.
@@ -292,9 +296,11 @@ void MidiParser::parseTrack()
         if (tmpByte == 0xFF && midiFile.available()) { // encontramos un metaevento que probablemente sea EOT
             if (midiFile.read() == 0x2F && midiFile.available()) { // segunda sospecha del fin de pista
                 if ( midiFile.read() == 0x00) {
+                    rightSFM = false;
                     Serial.println("Oficialmente se acaba la pista");
                     Serial.print("Ultimo tick: ");
                     float lastTick = (currentTick * sequencerPPQN) / resolutionFile;
+                    Serial.println(lastTick);
                     uint8_t qn = ((uint8_t)round(lastTick/sequencerPPQN));
                     currentPattern.measures = qn/currentPattern.numerator;
                     currentPattern.totalTicks = qn * sequencerPPQN;
@@ -307,6 +313,22 @@ void MidiParser::parseTrack()
                 }
             }
         }
+    }
+    
+    if (rightSFM) {
+        Serial.println("Oficialmente se acaba la pista");
+        Serial.print("Ultimo tick: ");
+        float lastTick = (currentTick * sequencerPPQN) / resolutionFile;
+        Serial.println(lastTick);
+        uint8_t qn = ((uint8_t)round(lastTick/sequencerPPQN));
+        currentPattern.measures = qn/currentPattern.numerator;
+        currentPattern.totalTicks = qn * sequencerPPQN;
+        Serial.println(currentPattern.measures);
+        Serial.println(currentPattern.totalTicks);
+        // Serial.r
+        // Guardar el nombre del patrón desde el archivo
+        strncpy(currentPattern.tackName, midiFiles[patternIndex-1].patternName.c_str(), sizeof(currentPattern.tackName) - 1);
+        currentPattern.tackName[sizeof(currentPattern.tackName) - 1] = '\0'; // Asegurar terminación nula
     }
 }
 
