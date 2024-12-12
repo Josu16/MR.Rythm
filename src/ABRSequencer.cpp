@@ -34,7 +34,7 @@ void ABRSequencer::readAllPatterns() {
 
 void ABRSequencer::initializePattern() {
 
-    parser.parseFile(controls.readPtrn());
+    parser.parsePattern(controls.readPtrn());
     // Copia segura del nuevo nombre
     strncpy(valuesMainScreen.namePtrn, pattern.tackName, 15);
 
@@ -73,6 +73,7 @@ void ABRSequencer::initializePattern() {
     valuesMainScreen.numberPtrn = lastPtrn;
     lastVariant = controls.readVariant();
     valuesMainScreen.currentVariationIndex = lastVariant;
+    controls.setMaxVariant(pattern.totalVariants);
 
     // Actualizar timer y tempo
     // Ubicación temporal en función de la funcionalidad,
@@ -128,11 +129,11 @@ void ABRSequencer::onTimer() {
             // TODO: revisar esta condición, mejorar el cíclo para iterar sobre la misma marcha del avance del tick
             // porque como está actualmente es ineficiente, recorre todos los eventos para buscar los que tocan ser 
             // ejecutados.
-            if (pattern.events[indexEvent].tick == currentTick) {
+            if (pattern.events[valuesMainScreen.currentVariationIndex - 1][indexEvent].tick == currentTick) {
                 // Enviar el evento MIDI
-                Serial7.write(pattern.events[indexEvent].type);
-                Serial7.write(pattern.events[indexEvent].note);
-                Serial7.write(pattern.events[indexEvent].velocity);
+                Serial7.write(pattern.events[valuesMainScreen.currentVariationIndex - 1][indexEvent].type);
+                Serial7.write(pattern.events[valuesMainScreen.currentVariationIndex - 1][indexEvent].note);
+                Serial7.write(pattern.events[valuesMainScreen.currentVariationIndex - 1][indexEvent].velocity);
             }
         }
         if (valuesMainScreen.currentBlack > pattern.numerator) {
@@ -195,6 +196,7 @@ void ABRSequencer::loop() {
         } 
         else if (autoChangePtrn || currentState == STOPPED) {
             lastPtrn = valuesMainScreen.numberPtrn;
+            controls.setVariant(1);
             valuesMainScreen.waitingForChangePtrn = false;
             autoChangePtrn = false;
             valuesMainScreen.currentBlack = 0;

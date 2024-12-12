@@ -12,6 +12,8 @@ public:
     void setPosition(int newValue);
     // long RotaryEncoder::getValue();
 
+    void setMax(int newMaxPosition);
+
 private:
     Encoder encoder;
     volatile long position;  // Referencia a la variable de posición externa

@@ -44,6 +44,10 @@ void Control::setVariant(int newValue) {
     variantRE.setPosition(newValue);
 }
 
+void Control::setMaxVariant(int newValue) {
+    variantRE.setMax(newValue);
+}
+
 long Control::readVariant() {
     return variantRE.getPosition();
 } 

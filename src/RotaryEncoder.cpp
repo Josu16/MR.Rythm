@@ -31,3 +31,7 @@ long RotaryEncoder::getPosition() {
     position = currentPosition;
     return position;
 }
+
+void RotaryEncoder::setMax(int newMaxPosition) {
+    maxPosition = newMaxPosition;
+}

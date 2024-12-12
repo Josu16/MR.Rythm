@@ -19,7 +19,8 @@ struct Pattern {
     uint8_t measures; // IMPORTANT: limitado a 255 compases.
     uint32_t totalTicks;
     uint32_t numEvents;
-    MidiEvent events[1000];
+    unsigned int totalVariants;
+    MidiEvent events[5][1000];
 };
 
 struct MidiFile {
@@ -40,6 +41,7 @@ class MidiParser {
         const char* directoryPath = "/patterns"; // Ruta del directorio
         std::vector<MidiFile> &midiFiles;
         Pattern &currentPattern;
+        unsigned int currentVariantIndex;
         unsigned int patternIndex = 1;
 
         int noteToChannel[128];
@@ -51,11 +53,12 @@ class MidiParser {
         void handleMetaEvent(uint8_t type, uint32_t length);
         void handleMidiEvent(uint8_t status, uint8_t note, uint8_t velocity, uint32_t currentTick);
 
+        void parseFile(String fullPath);
     public:
         MidiParser(std::vector<MidiFile> &files, Pattern& currentPattern);
-        bool parseFile(unsigned int ptrnIndex);
         uint16_t getNumEvents();
         void getAvailablePatterns();
+        bool parsePattern(unsigned int ptrnIndex);
 };
 
 #endif

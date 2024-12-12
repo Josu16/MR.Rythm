@@ -64,6 +64,7 @@ class Control {
         void setBpm(int newValue);
         void setPtrn(int newValue);
         void setVariant(int newValue);
+        void setMaxVariant(int newValue);
 
         // MANEJO DE INTERRUPCIONES
         // footswitches

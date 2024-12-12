@@ -332,9 +332,11 @@ void MidiParser::parseTrack()
     }
 }
 
-bool MidiParser::parseFile(unsigned int ptrnIndex)
+bool MidiParser::parsePattern(unsigned int ptrnIndex)
 {
     numRealEvents = 0;
+    currentVariantIndex = 0;
+    bool valid = true;
     // VALIDACIÓN DE EXISTENCIA DE SECUENCIA EN EL ÍNDICE
     if (ptrnIndex > midiFiles.size()) {
         for (size_t i = 0; i < 15; i++) {
@@ -343,29 +345,67 @@ bool MidiParser::parseFile(unsigned int ptrnIndex)
         currentPattern.tempo = 120;
         currentPattern.totalTicks = 384;
 
-        return false; // no hay más archivos
+        valid = false; // no hay más archivos
     } else {
         this -> patternIndex = ptrnIndex;
-        String fullPath = String(directoryPath) + "/" + midiFiles[ptrnIndex-1].midiFile;
-        const char* filePath = fullPath.c_str(); // Convierte a const char* para SdFat
-        Serial.println(filePath); // Imprime la ruta completa para depuración
-        midiFile = sd.open(filePath, FILE_READ);
-        if (!midiFile)
-        {
-            Serial.println("Error abriendo archivo MIDI");
-            return false;
-        }
 
-        if (parseHeader())
-        {
-            while (midiFile.available())
-            {
-                parseTrack();
+        String fullPath = String(directoryPath) + "/" + midiFiles[ptrnIndex-1].midiFile;
+        
+        parseFile(fullPath);
+
+        currentVariantIndex ++;
+        // RECUPERAR VARIANTES DE PATRÓN
+        SdFile dir;
+        // construir path del directorio
+        char subDirectory[50];
+        strncpy(subDirectory, directoryPath, 10);
+        char subDirBuffer[4]; // 3 dígitos + terminador nulo
+        // Formateamos el número con ceros a la izquierda
+        snprintf(subDirBuffer, sizeof(subDirBuffer), "%03d", ptrnIndex);
+        strcat(subDirectory, "/");
+        strcat(subDirectory, subDirBuffer);
+        // Verificar si el directorio existe
+        Serial.print("Directorio: ");
+        Serial.println(subDirectory);
+        if (!sd.exists(subDirectory) || !dir.open(subDirectory)) {
+            Serial.println("El directorio no existe o No se pudo abrir el subdirectorio");
+            valid = false;
+        }
+        else {
+            while (midiFile.openNext(&dir, O_READ)) {
+                char fileName[30];
+                midiFile.getName(fileName, sizeof(fileName));
+                if ((strstr(fileName, ".mid") || strstr(fileName, ".MID")) && !strstr(fileName, "._")) { 
+                    numRealEvents = 0;
+                    fullPath = String(subDirectory) + "/" + fileName;
+                    parseFile(fullPath);
+                    currentVariantIndex ++;
+                }
             }
         }
-        midiFile.close();
+        currentPattern.totalVariants = currentVariantIndex;
     }
-    return true;
+    return valid;
+}
+
+void MidiParser::parseFile(String fullPath) {
+    const char* filePath = fullPath.c_str(); // Convierte a const char* para SdFat
+    Serial.println(filePath); // Imprime la ruta completa para depuración
+    midiFile = sd.open(filePath, FILE_READ);
+    if (!midiFile)
+    {
+        Serial.println("Error abriendo archivo MIDI Base");
+        return;
+    }
+
+    if (parseHeader())
+    {
+        while (midiFile.available())
+        {
+            parseTrack();
+        }
+    }
+    midiFile.close();
 }
 
 void MidiParser::handleMetaEvent(uint8_t type, uint32_t length)
@@ -450,7 +490,7 @@ void MidiParser::handleMidiEvent(uint8_t status, uint8_t note, uint8_t velocity,
     Serial.print(velocity);
     Serial.print(", current tick: ");
     Serial.println(event.tick);
-    currentPattern.events[numRealEvents] = event;
+    currentPattern.events[currentVariantIndex][numRealEvents] = event;
     numRealEvents ++;
 }
 
