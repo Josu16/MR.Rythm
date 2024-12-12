@@ -27,7 +27,7 @@ class ABRSequencer {
         Pattern pattern;
 
         // Configuraión de variables para la reproducción (Máquina de Estados Finitos)
-        unsigned int patternLength;  // número de eventos midi por patrón
+        volatile unsigned int patternLength;  // número de eventos midi por patrón
         enum SequencerState {
             STOPPED,    // Parado
             PLAYING    // Reproduciendo

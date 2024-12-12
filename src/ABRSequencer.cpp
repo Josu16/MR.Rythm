@@ -43,7 +43,6 @@ void ABRSequencer::initializePattern() {
 
     // No es necesario agregar '\0' manualmente ya que strncpy respeta el límite asegurado por el memset
 
-    patternLength = parser.getNumEvents();
 
     // for (unsigned int indexEvent = 0; indexEvent < patternLength; indexEvent++) {
     //     Serial.print("Type: ");
@@ -74,6 +73,15 @@ void ABRSequencer::initializePattern() {
     lastVariant = controls.readVariant();
     valuesMainScreen.currentVariationIndex = lastVariant;
     controls.setMaxVariant(pattern.totalVariants);
+
+    // El pattern LENGHT es conflictivo
+    /* 
+    TODO: revisar otro enfoque alterno porque parece ser que si se calcula este valor
+    muy pronto después de hacer el parseo del patrón, este puede queda incompleto, por tanto
+    la secuencia tendrá una longitud menor a la esperada, un enfoque puede ser manejar la variable 
+    como un apuntador al arreglo de tamaños de patrones para evitar problemas de actualización.
+    */
+    patternLength = parser.getNumEvents(valuesMainScreen.currentVariationIndex - 1);
 
     // Actualizar timer y tempo
     // Ubicación temporal en función de la funcionalidad,
@@ -210,7 +218,11 @@ void ABRSequencer::loop() {
     }
 
     // Verificar cambio de variante
-    valuesMainScreen.currentVariationIndex = controls.readVariant();
+    uint8_t newVariationIndex = controls.readVariant();
+    if (newVariationIndex != valuesMainScreen.currentVariationIndex ) {
+        valuesMainScreen.currentVariationIndex = newVariationIndex;
+        patternLength = parser.getNumEvents(valuesMainScreen.currentVariationIndex - 1);
+    }
 }
 
 void ABRSequencer::updateTrianglePosition() {

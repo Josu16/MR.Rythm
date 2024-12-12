@@ -405,6 +405,9 @@ void MidiParser::parseFile(String fullPath) {
             parseTrack();
         }
     }
+    Serial.print("Eventos totales:");
+    Serial.println(numRealEvents);
+    currentPattern.eventsByVariant[currentVariantIndex] = numRealEvents;
     midiFile.close();
 }
 
@@ -494,6 +497,6 @@ void MidiParser::handleMidiEvent(uint8_t status, uint8_t note, uint8_t velocity,
     numRealEvents ++;
 }
 
-uint16_t MidiParser::getNumEvents() {
-    return numRealEvents;
+uint16_t MidiParser::getNumEvents(unsigned int variant) {
+    return currentPattern.eventsByVariant[variant];
 }

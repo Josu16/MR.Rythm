@@ -21,6 +21,7 @@ struct Pattern {
     uint32_t numEvents;
     unsigned int totalVariants;
     MidiEvent events[5][1000];
+    int eventsByVariant[5];
 };
 
 struct MidiFile {
@@ -56,7 +57,7 @@ class MidiParser {
         void parseFile(String fullPath);
     public:
         MidiParser(std::vector<MidiFile> &files, Pattern& currentPattern);
-        uint16_t getNumEvents();
+        uint16_t getNumEvents(unsigned int variant);
         void getAvailablePatterns();
         bool parsePattern(unsigned int ptrnIndex);
 };
