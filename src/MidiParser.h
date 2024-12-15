@@ -51,7 +51,7 @@ class MidiParser {
         uint32_t readVLQ();
         bool parseHeader();
         void parseTrack();
-        void handleMetaEvent(uint8_t type, uint32_t length);
+        bool handleMetaEvent(uint8_t type, uint32_t length);
         void handleMidiEvent(uint8_t status, uint8_t note, uint8_t velocity, uint32_t currentTick);
 
         void parseFile(String fullPath);

@@ -186,10 +186,8 @@ bool MidiParser::parseHeader()
 
 void MidiParser::parseTrack()
 {
-    char trackHeader[4];
+    char trackHeader[5] = {"\n"};
     midiFile.read(trackHeader, 4);
-
-    bool rightSFM = true;
 
     Serial.println("-----------");
     Serial.println(trackHeader);
@@ -197,6 +195,10 @@ void MidiParser::parseTrack()
     if (strncmp(trackHeader, "MTrk", 4) != 0)
     {
         Serial.print("Track inválido: ");
+        Serial.print(trackHeader[0]);
+        Serial.print(trackHeader[1]);
+        Serial.print(trackHeader[2]);
+        Serial.println(trackHeader[3]);
         return;
     }
     else
@@ -206,130 +208,99 @@ void MidiParser::parseTrack()
 
     uint32_t trackSize = (midiFile.read() << 24) | (midiFile.read() << 16) |
                          (midiFile.read() << 8) | midiFile.read();
-    uint32_t bytesRead = 0;
     uint32_t currentTick = 0;
 
     // trackSize = 328;
 
-    Serial.println("Tamaño del chunk: ");
+    Serial.print("Tamaño del chunk: ");
     Serial.println(trackSize);
 
-    while (bytesRead < trackSize)
-    {
+    // approach por datagrama
+    bool endOfTrack = false;
+    while (!endOfTrack) {
+        // comenzar con el primer metaevento/evento
+        // leer delta time
         uint32_t deltaTime = readVLQ();
+        // byte actual a evaluar
         uint8_t midiByte;
-
-        bytesRead += getVLQLength(deltaTime);
+        // para controlar el tiempo absoluto
         currentTick += deltaTime;
 
+        // DETERMINAMOS SI ES EVENTO O METAEVENTO
+            // AQUI DEBE IR EL MECANISMO DE RESUMEN DE 
+            // BYTE DE STATUS.
+        
         uint8_t statusByte = midiFile.read();
-        bytesRead++;
-        if ((statusByte & 0x80) == 0)
-        { // si N0 está prendido el MSB procesa el mensaje, entonces llegó un mensaje resumido
-            midiByte = statusByte;
-            statusByte = lastStatusByte;
-            // alreadyReaded = true;
-        }
-        else
-        { // si está PRENDIDo, entonces lee el PRIMER byte de datos del mensaje
+        if (statusByte == 0xFF) { // Metaevent
+            // uint32_t length = readVLQ();
             midiByte = midiFile.read();
-            bytesRead++;
-        }
-
-        if (statusByte == 0xFF)
-        { // Metaevent
-            uint32_t length = readVLQ();
-            bytesRead += 1 + getVLQLength(length);
-            handleMetaEvent(midiByte, length); // en este caso midiByte es un metaEventType
-            bytesRead += length;
-        }
-        else
-        {
-
-            if ((statusByte & 0xF0) == 0x80 || (statusByte & 0xF0) == 0x90)
-            { // Note On/Off
-                uint8_t velocity = midiFile.read();
-                bytesRead++;
-                handleMidiEvent(statusByte, midiByte, velocity, currentTick);
-            }
-            else
-            { // otro tipo de mensajes
-                Serial.print("Midi ignorado ");
-                Serial.println(statusByte, HEX);
-
-                if ((statusByte & 0xF0) == 0xC0)
-                { // Program change
-                    Serial.print("Complemento del ignorado 1: ");
-                    Serial.println(midiByte, HEX);
+            uint32_t length = midiFile.read();
+            endOfTrack = handleMetaEvent(midiByte, length); // en este caso midiByte es un metaEventType
+        } 
+        else {
+            uint8_t messageType = statusByte & 0xF0; // Extrae el tipo de mensaje (bits 4-7)
+            switch (messageType) {
+                case 0x80: // Note Off
+                case 0x90: { // Note On
+                    uint8_t midiByte = midiFile.read();
+                    uint8_t velocity = midiFile.read();
+                    handleMidiEvent(statusByte, midiByte, velocity, currentTick);
+                    break;
                 }
-                else if ((statusByte & 0xF0) == 0xB0)
-                { // Control change
-                    Serial.print("Complemento del ignorado 1: ");
-                    Serial.println(midiByte, HEX);
-
-                    midiByte = midiFile.read();
-                    Serial.print("Complemento del ignorado 2: ");
-                    Serial.println(midiByte, HEX);
-                    bytesRead++;
+                case 0xA0: { // Aftertouch Polifónico
+                    uint8_t note = midiFile.read();
+                    uint8_t amount = midiFile.read();
+                    // handleMidiEvent(messageType, channel, note, amount, currentTick);
+                    break;
                 }
-            }
-        }
-        lastStatusByte = statusByte;
-    }
-    Serial.println("Terminé de leer todos los mensajes midi del track (según chunk)");
-
-    /*
-        IR A LA BÚSQUEDA DEL FIN DE TRACK
-        NOTA: esta versión es alpha, puede no trabajar bien con todas los .mid
-        resulta que por algún motivo el tamaño del chunk indicado no coincide con el real
-        por tanto sobran 3 bytes antes de llegar al end of track (0xFF, 0x2F, 0x00), a
-        continuación se agrega un código extra para ir a buscar ese fin de track manualmente
-        posteriormente se va a revisar por qué pasa esto y como resolverlo.
-
-        EN CUBAASE 14 ESTO NO ES UN PROBLEMA, HASTA AHORA SOLO EN LOGIC POR X 10.7.4
-    */
-
-    // ir a la búsqueda del EOT.
-    uint8_t tmpByte;
-    while (midiFile.available()) {
-        tmpByte = midiFile.read();
-        if (tmpByte == 0xFF && midiFile.available()) { // encontramos un metaevento que probablemente sea EOT
-            if (midiFile.read() == 0x2F && midiFile.available()) { // segunda sospecha del fin de pista
-                if ( midiFile.read() == 0x00) {
-                    rightSFM = false;
-                    Serial.println("Oficialmente se acaba la pista");
-                    Serial.print("Ultimo tick: ");
-                    float lastTick = (currentTick * sequencerPPQN) / resolutionFile;
-                    Serial.println(lastTick);
-                    uint8_t qn = ((uint8_t)round(lastTick/sequencerPPQN));
-                    currentPattern.measures = qn/currentPattern.numerator;
-                    currentPattern.totalTicks = qn * sequencerPPQN;
-                    Serial.println(currentPattern.measures);
-                    Serial.println(currentPattern.totalTicks);
-                    // Serial.r
-                    // Guardar el nombre del patrón desde el archivo
-                    strncpy(currentPattern.tackName, midiFiles[patternIndex-1].patternName.c_str(), sizeof(currentPattern.tackName) - 1);
-                    currentPattern.tackName[sizeof(currentPattern.tackName) - 1] = '\0'; // Asegurar terminación nula
+                case 0xB0: { // Control Change
+                    uint8_t controller = midiFile.read();
+                    uint8_t value = midiFile.read();
+                    // handleMidiEvent(messageType, channel, controller, value, currentTick);
+                    Serial.println("Control change");
+                    break;
                 }
+                case 0xC0: { // Program Change
+                    uint8_t program = midiFile.read();
+                    // handleMidiEvent(messageType, channel, program, 0, currentTick); // Usamos 0 como valor por defecto
+                    Serial.println("Control change");
+                    break;
+                }
+                case 0xD0: { // Aftertouch de Canal
+                    uint8_t amount = midiFile.read();
+                    // handleMidiEvent(messageType, channel, amount, 0, currentTick);
+                    break;
+                }
+                case 0xE0: { // Pitch Bend Change
+                    uint8_t lsb = midiFile.read();
+                    uint8_t msb = midiFile.read();
+                    uint16_t pitchBendValue = (msb << 7) | lsb;
+                    // handleMidiEvent(messageType, channel, pitchBendValue, 0, currentTick);
+                    Serial.println("Control change");
+                    break;
+                }
+                default:
+                    Serial.print("Mensaje MIDI desconocido o no implementado: ");
+                    Serial.println(statusByte, HEX);
+                    break;
             }
         }
     }
-    
-    if (rightSFM) {
-        Serial.println("Oficialmente se acaba la pista");
-        Serial.print("Ultimo tick: ");
-        float lastTick = (currentTick * sequencerPPQN) / resolutionFile;
-        Serial.println(lastTick);
-        uint8_t qn = ((uint8_t)round(lastTick/sequencerPPQN));
-        currentPattern.measures = qn/currentPattern.numerator;
-        currentPattern.totalTicks = qn * sequencerPPQN;
-        Serial.println(currentPattern.measures);
-        Serial.println(currentPattern.totalTicks);
-        // Serial.r
-        // Guardar el nombre del patrón desde el archivo
-        strncpy(currentPattern.tackName, midiFiles[patternIndex-1].patternName.c_str(), sizeof(currentPattern.tackName) - 1);
-        currentPattern.tackName[sizeof(currentPattern.tackName) - 1] = '\0'; // Asegurar terminación nula
-    }
+
+    Serial.println("---Operaciones de fin de pista---");
+    Serial.print("Ultimo tick: ");
+    float lastTick = (currentTick * sequencerPPQN) / resolutionFile;
+    Serial.println(lastTick);
+    uint8_t qn = ((uint8_t)round(lastTick/sequencerPPQN));
+    currentPattern.measures = qn/currentPattern.numerator;
+    currentPattern.totalTicks = qn * sequencerPPQN;
+    Serial.print("Compaases: ");
+    Serial.println(currentPattern.measures);
+    Serial.print("Total ticks: ");
+    Serial.println(currentPattern.totalTicks);
+    // Guardar el nombre del patrón desde el archivo
+    strncpy(currentPattern.tackName, midiFiles[patternIndex-1].patternName.c_str(), sizeof(currentPattern.tackName) - 1);
+    currentPattern.tackName[sizeof(currentPattern.tackName) - 1] = '\0'; // Asegurar terminación nula
 }
 
 bool MidiParser::parsePattern(unsigned int ptrnIndex)
@@ -403,6 +374,7 @@ void MidiParser::parseFile(String fullPath) {
         while (midiFile.available())
         {
             parseTrack();
+            // break;
         }
     }
     Serial.print("Eventos totales:");
@@ -411,9 +383,9 @@ void MidiParser::parseFile(String fullPath) {
     midiFile.close();
 }
 
-void MidiParser::handleMetaEvent(uint8_t type, uint32_t length)
+bool MidiParser::handleMetaEvent(uint8_t type, uint32_t length)
 {
-    Serial.println("Se procesó un metaevento");
+    bool endOfTrack = false;
     switch (type)
     {
         case 0x51:
@@ -445,6 +417,7 @@ void MidiParser::handleMetaEvent(uint8_t type, uint32_t length)
         }
         case 0x58:
         { // Time signature
+            Serial.println("estamos en time signature");
             uint16_t value;
             midiFile.read((uint8_t*)&value, 2);
 
@@ -457,12 +430,22 @@ void MidiParser::handleMetaEvent(uint8_t type, uint32_t length)
             midiFile.seek(midiFile.position() + (length-2));  // Incrementa el puntero del archivo
             break;
         }
+        case 0x2F:
+        {
+            if (length == 0) {
+                endOfTrack = true;
+                Serial.println("Fin de la pista detectado");
+            } 
+            break;
+        }
         default:
         {
+            Serial.println("metaevento por defecto");
             midiFile.seek(midiFile.position() + length); // Saltar datos no relevantes
             break;
         }
     }
+    return endOfTrack;
 }
 
 void MidiParser::handleMidiEvent(uint8_t status, uint8_t note, uint8_t velocity, uint32_t currentTick)
