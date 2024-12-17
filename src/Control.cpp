@@ -5,7 +5,7 @@ Control* Control::instance = nullptr;
 Control::Control(volatile long tempo, volatile long pattern)
     :
     bpmRE(pinA1Re, pinB1Re, tempo, 20, 250),
-    ptrnRE(pinA2Re, pinB2Re, pattern, 1, 10), // TODO: revisar el parámetro long. corrgir.
+    ptrnRE(pinA2Re, pinB2Re, pattern, 1, 120), // TODO: revisar el parámetro long. corrgir.
     variantRE(pinA3Re, pinB3Re, 1, 1, 5) // TODO: revisar el parámetro long. corrgir.
 {
     // FootSwitch
