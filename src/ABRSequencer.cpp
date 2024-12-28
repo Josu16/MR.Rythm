@@ -181,7 +181,7 @@ void ABRSequencer::loop() {
     updateBpm();
 
     // Verificar cambios en el estado del footswitch
-    if (controls.checkForFootswitch()) {
+    if (controls.checkForFootswitch() || controls.tmpFootSwitch()) {
         if (currentState == PLAYING)
             transitionToState(STOPPED);
         else

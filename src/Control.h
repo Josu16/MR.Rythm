@@ -45,6 +45,18 @@ class Control {
         unsigned long lastDebounceTimeTempo = 0;
         const unsigned long debounceDelayTempo = 400;  // Tiempo de debounce en milisegundos
 
+        // Pines de hardware
+        const int BUTTON_PIN = 23;   // Pin al que está conectado el botón
+        const int LED_PIN = 15;     // Pin para un LED de prueba
+
+        // Constantes de máscara para el debouncer
+        static const uint8_t MASK = 0b11000111;    // Máscara para detectar el patrón de "presionado"
+
+        // Variables globales
+        uint8_t button_history = 0;   // Historial del estado del botón
+        uint8_t press_count = 1;      // Contador de pulsaciones
+        uint8_t release_count = 0;    // Contador de liberaciones
+
         // Referencia estática a la instancia actual
         static Control* instance;
 
@@ -73,6 +85,14 @@ class Control {
         
         static void loockTempoISR();
         void handleLoockTempooInterrupt();
+
+        uint8_t read_button(void);
+        void update_button(uint8_t *button_history);
+        uint8_t is_button_pressed(uint8_t *button_history);
+        uint8_t is_button_released(uint8_t *button_history);
+        uint8_t is_button_down(uint8_t *button_history);
+        uint8_t is_button_up(uint8_t *button_history);
+        bool tmpFootSwitch();
 };
 
 #endif
