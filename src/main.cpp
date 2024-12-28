@@ -7,7 +7,7 @@
 #include "ABRSequencer.h"
 
 // // ----------------------------- SEQUENCER DECLARATION VARIABLES -----------------------------
-ABRSequencer sequencer(/*pinA1Re, pinB1Re, pinFw, 120, &triangleX*/ 96);
+ABRSequencer sequencer(96);
 // // ----------------------------- END SEQUENCER DECLARATION VARIABLES -----------------------------
 
 void setup() {

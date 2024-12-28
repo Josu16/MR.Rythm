@@ -5,6 +5,7 @@
 #include <IntervalTimer.h>
 #include <vector>
 
+#include "pins.h"
 #include "RotaryEncoder.h"
 #include "MidiParser.h"
 #include "UI.h"
@@ -40,7 +41,6 @@ class ABRSequencer {
         uint8_t ptrnChangedAgain = 0;
 
         // Indicadores
-        const int playLed = 14;
         volatile bool playledState = false;     // Estado actual del LED
         volatile uint32_t playLedOffTick = 0;   // Tick en el que se apagará el LED
 

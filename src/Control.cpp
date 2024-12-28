@@ -4,27 +4,27 @@ Control* Control::instance = nullptr;
 
 Control::Control(volatile long tempo, volatile long pattern)
     :
-    bpmRE(pinA1Re, pinB1Re, tempo, 20, 250),
-    ptrnRE(pinA2Re, pinB2Re, pattern, 1, 120), // TODO: revisar el parámetro long. corrgir.
-    variantRE(pinA3Re, pinB3Re, 1, 1, 5) // TODO: revisar el parámetro long. corrgir.
+    bpmRE(PIN_A1RE, PIN_B1RE, tempo, 20, 250),
+    ptrnRE(PIN_A2RE, PIN_B2RE, pattern, 1, 120), // TODO: revisar el parámetro long. corrgir.
+    variantRE(PIN_A3RE, PIN_B3RE, 1, 1, 5) // TODO: revisar el parámetro long. corrgir.
 {
     // FootSwitch
-    pinMode(pinFw, INPUT_PULLUP);
+    pinMode(PIN_BTN1, INPUT_PULLUP);
     footswitchChanged = false;
     footswitchState = HIGH;
     lastDebounceTime = 0;
-    attachInterrupt(digitalPinToInterrupt(pinFw), fwISR, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(PIN_BTN1), fwISR, CHANGE);
 
     // LoockTempo
-    pinMode(pinLoockTempo, INPUT_PULLUP);
+    pinMode(PIN_BTN2, INPUT_PULLUP);
     loockTempoState = false;
     loockTempoChanged = false;
-    attachInterrupt(digitalPinToInterrupt(pinLoockTempo), loockTempoISR, RISING);
+    attachInterrupt(digitalPinToInterrupt(PIN_BTN2), loockTempoISR, RISING);
 
 
-    pinMode(BUTTON_PIN, INPUT_PULLUP);
-    pinMode(LED_PIN, OUTPUT);
-    digitalWrite(LED_PIN, LOW);
+    pinMode(PIN_FW1, INPUT_PULLUP);
+    pinMode(PIN_LED_TEST, OUTPUT);
+    digitalWrite(PIN_LED_TEST, LOW);
     instance = this;
 }
 
@@ -62,7 +62,7 @@ void Control::fwISR() {
     }
 }
 void Control::handleFootswitchInterrupt() {
-    footswitchState = digitalRead(pinFw);
+    footswitchState = digitalRead(PIN_BTN1);
     footswitchChanged = true;
 }
 
@@ -117,7 +117,7 @@ https://hackaday.com/2015/12/10/embed-with-elliot-debounce-your-noisy-buttons-pa
 
 // Función para leer el estado actual del botón
 uint8_t Control::read_button(void) {
-  return digitalRead(BUTTON_PIN) == LOW ? 1 : 0; // Activo en bajo
+  return digitalRead(PIN_FW1) == LOW ? 1 : 0; // Activo en bajo
 }
 
 // Función para actualizar el historial del botón
@@ -164,7 +164,7 @@ bool Control::tmpFootSwitch() {
         release_count++;
         Serial.print("Botón liberado: ");
         Serial.println(release_count);
-        digitalWrite(LED_PIN, LOW); // Apaga el LED como ejemplo
+        digitalWrite(PIN_LED_TEST, LOW); // Apaga el LED como ejemplo
     }
 
     // Detecta un evento de botón liberado
@@ -172,7 +172,7 @@ bool Control::tmpFootSwitch() {
         press_count++;
         Serial.print("Botón presionado: ");
         Serial.println(press_count);
-        digitalWrite(LED_PIN, HIGH); // Enciende el LED como ejemplo
+        digitalWrite(PIN_LED_TEST, HIGH); // Enciende el LED como ejemplo
         stateBtn = true;
     }
 

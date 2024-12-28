@@ -121,14 +121,14 @@ void ABRSequencer::onTimer() {
         // Control del LED para cada nota negra (96 ticks) y semi-corchea (24 ticks)
         if (currentTick % 96 == 0) {
             // Encender el LED en cada nota negra
-            digitalWrite(playLed, HIGH);
+            digitalWrite(PIN_LED_PLAYING, HIGH);
             playledState = true;
             playLedOffTick = currentTick + 16; // Apagar el LED después de 24 ticks
             valuesMainScreen.currentBlack ++;
         }
         if (playledState && currentTick >= playLedOffTick) {
             // Apagar el LED después de 24 ticks
-            digitalWrite(playLed, LOW);
+            digitalWrite(PIN_LED_PLAYING, LOW);
             playledState = false;
         }
 
@@ -253,7 +253,7 @@ void ABRSequencer::transitionToState(SequencerState newState) {
             currentTick = 0;
             valuesMainScreen.currentBlack = 0;
             valuesMainScreen.currentMeasure = 1;
-            digitalWrite(playLed, LOW);
+            digitalWrite(PIN_LED_PLAYING, LOW);
             allNotesOff(9);
             allNotesOff(10);
             allNotesOff(11);

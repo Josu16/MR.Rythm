@@ -3,19 +3,8 @@
 
 #include <arduino.h>
 
+#include "pins.h"
 #include "RotaryEncoder.h"
-
-const int pinA1Re = 2; // TODO: cambiar todas las declaraciones de pines a defines
-const int pinB1Re = 3;
-const int pinFw = 41;
-
-const int pinA2Re = 4;
-const int pinB2Re = 5;
-const int pinLoockTempo = 40;
-
-const int pinA3Re = 6;
-const int pinB3Re = 7;
-const int pinLoockVariation = 39;
 
 // switches
 
@@ -44,10 +33,6 @@ class Control {
         volatile bool loockTempoChanged;
         unsigned long lastDebounceTimeTempo = 0;
         const unsigned long debounceDelayTempo = 400;  // Tiempo de debounce en milisegundos
-
-        // Pines de hardware
-        const int BUTTON_PIN = 23;   // Pin al que está conectado el botón
-        const int LED_PIN = 15;     // Pin para un LED de prueba
 
         // Constantes de máscara para el debouncer
         static const uint8_t MASK = 0b11000111;    // Máscara para detectar el patrón de "presionado"

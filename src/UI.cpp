@@ -4,8 +4,8 @@
 UI::UI(MainScreen &values)
     :
     valuesMainScreen(values),
-    playScreen(U8G2_R0, CS, RS, RSE),
-    ptrScreen(U8G2_R0, CS_1, RS_1, RSE_1)
+    playScreen(U8G2_R0, PIN_CS_PLAY, PIN_RS_PLAY, PIN_RSE_PLAY),
+    ptrScreen(U8G2_R0, PIN_CS_PTRN, PIN_RS_PTRN, PIN_RSE_PTRN)
   {
     // Inicialización de ambas pantallas
     playScreen.begin();
@@ -48,7 +48,7 @@ void UI::refreshPlayScreen() {
     playScreen.firstPage();
     do {
         playScreen.setFont(u8g2_font_luBS10_tf);
-        playScreen.drawFrame(0, 0, 128, 64);
+        // playScreen.drawFrame(0, 0, 128, 64);
         playScreen.setCursor(6, 25);
         playScreen.print(valuesMainScreen.numberPtrn);
         playScreen.drawLine(6, 35, 120, 35);
