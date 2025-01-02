@@ -10,6 +10,7 @@
 #include "MidiParser.h"
 #include "UI.h"
 #include "Control.h"
+#include "HyperNATURAL.h"
 
 class ABRSequencer {
     private:
@@ -58,6 +59,9 @@ class ABRSequencer {
         // std::vector<String> midiFiles; // Contenedor para los nombres de archivos
         std::vector<MidiFile> midiFiles;
 
+
+        // HyperNATURAL Sound Generator
+        HyperNATURAL soundGenerator;
 
     public:
         ABRSequencer(uint8_t PPQN);

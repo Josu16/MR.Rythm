@@ -41,9 +41,10 @@
 #define PIN_MIDI_TX_7 29
 
 // Pines Salida de Audio 1 (I2S para DAC PCM5102)
+// #define PIN_I2S_MCLK 23 // Master Clock (opcional)
 #define PIN_I2S_BCLK 21    // Bit Clock
 #define PIN_I2S_LRCLK 20   // Left/Right Clock
-#define PIN_I2S_DATA 7     // Data In
-#define PIN_I2S_MCLK 23    // Master Clock (opcional)
+#define PIN_I2S_DATA_1 7   // Data In primer par de salidas
+#define PIN_I2S_DATA_2 32  // Data In segundo par de salidas
 
 #endif // PINS_H

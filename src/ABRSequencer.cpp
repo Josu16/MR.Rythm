@@ -223,6 +223,9 @@ void ABRSequencer::loop() {
         valuesMainScreen.currentVariationIndex = newVariationIndex;
         patternLength = parser.getNumEvents(valuesMainScreen.currentVariationIndex - 1);
     }
+
+    // Sound Generator
+    soundGenerator.loop();
 }
 
 void ABRSequencer::updateTrianglePosition() {
