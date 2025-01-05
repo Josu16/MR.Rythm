@@ -20,6 +20,7 @@ https://forum.pjrc.com/index.php?threads/teensy-4-with-two-pcm5102-dac.68280/
 class HyperNATURAL {
 public:
     HyperNATURAL();
+    void playFile(const char *filename);
     void loop();
 
 private:

@@ -8,6 +8,9 @@ Control::Control(volatile long tempo, volatile long pattern)
     ptrnRE(PIN_A2RE, PIN_B2RE, pattern, 1, 120), // TODO: revisar el parámetro long. corrgir.
     variantRE(PIN_A3RE, PIN_B3RE, 1, 1, 5) // TODO: revisar el parámetro long. corrgir.
 {
+    Serial.begin(9600);       // Serial para depuración
+    while (!Serial) {
+    }
     // FootSwitch
     pinMode(PIN_BTN1, INPUT_PULLUP);
     footswitchChanged = false;

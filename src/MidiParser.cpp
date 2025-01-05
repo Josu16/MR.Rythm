@@ -7,7 +7,6 @@ MidiParser::MidiParser(std::vector<MidiFile> &files, Pattern& pattern)
     midiFiles(files),
     currentPattern(pattern)
 {
-    Serial.println("Hola parser");
 
     if (!sd.begin(SdioConfig()))
     {
@@ -22,6 +21,7 @@ MidiParser::MidiParser(std::vector<MidiFile> &files, Pattern& pattern)
     // Serial.println("Archivo abierto correctamente");
     setupNoteToChannelMapping();
 
+    Serial.println("Hola parser");
 }
 
 // Inicializar la tabla
