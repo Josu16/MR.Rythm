@@ -95,6 +95,8 @@ void ABRSequencer::initializePattern() {
 void ABRSequencer::beginSequencer() {
     readAllPatterns();
     initializePattern();
+    // PRUEBA: Inicializamos el generador de sonidos:
+    soundGenerator.initializeSG();
 }
 
 void ABRSequencer::updateTimerInterval() {
@@ -128,6 +130,8 @@ void ABRSequencer::onTimer() {
             playledState = true;
             playLedOffTick = currentTick + 16; // Apagar el LED después de 24 ticks
             valuesMainScreen.currentBlack ++;
+
+            playSnare = true;
         }
         if (playledState && currentTick >= playLedOffTick) {
             // Apagar el LED después de 24 ticks
@@ -228,7 +232,7 @@ void ABRSequencer::loop() {
     }
 
     // Sound Generator
-    soundGenerator.loop();
+    soundGenerator.loop(playSnare);
 }
 
 void ABRSequencer::updateTrianglePosition() {

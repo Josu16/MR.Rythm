@@ -63,6 +63,9 @@ class ABRSequencer {
         // HyperNATURAL Sound Generator
         HyperNATURAL soundGenerator;
 
+        // ZONA TEMPORAL DE PRUEBAS
+        volatile bool playSnare = false;
+
     public:
         ABRSequencer(uint8_t PPQN);
         void beginSequencer();

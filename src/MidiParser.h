@@ -21,6 +21,11 @@ struct Pattern {
     uint32_t numEvents;
     unsigned int totalVariants;
     MidiEvent events[5][1000];
+    /*
+    events puede llegar a pesar por variante con 1000 eventos 8kb
+    es muchísimo más que los 400 bytes que el midi original, pero
+    este formato permite ya no tener que procesar nada en tiempo real.
+     */
     int eventsByVariant[5];
 };
 

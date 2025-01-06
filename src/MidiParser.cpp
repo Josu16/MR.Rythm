@@ -360,6 +360,17 @@ bool MidiParser::parsePattern(unsigned int ptrnIndex)
 }
 
 void MidiParser::parseFile(String fullPath) {
+    /*
+    TODO: SOLUCIÓN TEMPORAL al problema de la lectura de archivos midi
+    esta configuración debe desaparecer para dar paso a la lectura
+    desde la memoria flash más rápida, por ahora los samples y 
+    los archivos midi se leen al cambiar de patrón.
+    */
+    if (!sd.begin(SdioConfig()))
+    {
+        Serial.println("Error inicializando la tarjeta SD");
+        return;
+    }
     const char* filePath = fullPath.c_str(); // Convierte a const char* para SdFat
     Serial.println(filePath); // Imprime la ruta completa para depuración
     midiFile = sd.open(filePath, FILE_READ);
