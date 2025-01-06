@@ -12,7 +12,7 @@
 #define PIN_BTN2 40
 
 #define PIN_A3RE 6
-#define PIN_B3RE 19
+#define PIN_B3RE 17  // No funcionó con el pin 19 ni con 18
 #define PIN_BTN3 39
 
 #define PIN_FW1 22
