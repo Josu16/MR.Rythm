@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include "RotaryEncoder.h"
 #include "ABRSequencer.h"
 
 // // ----------------------------- SEQUENCER DECLARATION VARIABLES -----------------------------
