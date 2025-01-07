@@ -370,12 +370,14 @@ void MidiParser::parseTrack()
                 }
                 case 0xC0: { // Program Change
                     uint8_t program = midiFile.read();
+                    (void) program;
                     // handleMidiEvent(messageType, channel, program, 0, currentTick); // Usamos 0 como valor por defecto
                     //Serial.println("Control change");
                     break;
                 }
                 case 0xD0: { // Aftertouch de Canal
                     uint8_t amount = midiFile.read();
+                    (void) amount;
                     // handleMidiEvent(messageType, channel, amount, 0, currentTick);
                     break;
                 }
@@ -383,8 +385,11 @@ void MidiParser::parseTrack()
                     uint8_t lsb = midiFile.read();
                     uint8_t msb = midiFile.read();
                     uint16_t pitchBendValue = (msb << 7) | lsb;
+                    (void) lsb;
+                    (void) msb;
+                    (void) pitchBendValue;
                     // handleMidiEvent(messageType, channel, pitchBendValue, 0, currentTick);
-                    //Serial.println("Control change");
+                    //Serial.println("Pitch bend change");
                     break;
                 }
                 default:

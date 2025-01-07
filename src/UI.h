@@ -8,7 +8,7 @@
 
 struct MainScreen{  // TODO: revisar el nombre final respecto a los nombres de los objetos de pantalla
     uint8_t numberPtrn;
-    char namePtrn[15];
+    char namePtrn[16]; // Se agregó un espacio más de caracteres para que se utilice como el '\0'
     uint8_t measures;
     uint8_t numerator;
     uint8_t denominator;
