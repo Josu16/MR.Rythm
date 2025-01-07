@@ -76,7 +76,7 @@ void HyperNATURAL::playFile(const char *filename)
 
 void HyperNATURAL::loop(volatile bool &playSnare) {
   if (playSnare) {
-    playFile("/samples/snare/sonordesigner5.wav");  // filenames are always uppercase 8.3 format
+    playFile("/samples/cencerro/lprock5.wav");  // filenames are always uppercase 8.3 format
     playSnare = false;
   }
     // Serial.print("a");

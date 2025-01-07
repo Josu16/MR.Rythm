@@ -12,7 +12,7 @@ InternalFlashFS::InternalFlashFS() {
     }
 
     // PROPÓSITOS DE DESARROLLO (BORRADO DE TODOS LOS ARCHIVOS)
-    mr9Fs.lowLevelFormat();  // performs a quick format of the created di
+    // mr9Fs.lowLevelFormat();  // performs a quick format of the created di
 }
 
 void InternalFlashFS::getPattern(uint16_t numberPattern, Pattern &requiredPattern) {

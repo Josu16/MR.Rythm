@@ -10,9 +10,6 @@ ABRSequencer::ABRSequencer(uint8_t PPQN)
     screens(valuesMainScreen),
     parser(midiFiles, pattern)
 {
-    // while (1) {
-
-    // } // para depuración previa a la creación del secuenciador.
     // Seteos generales del secuenciador:
     pulsesPerQuarterNote = PPQN;
     
@@ -89,7 +86,6 @@ void ABRSequencer::initializePattern() {
 void ABRSequencer::beginSequencer() {
     readAllPatterns();
     initializePattern();
-    // PRUEBA: Inicializamos el generador de sonidos:
     soundGenerator.initializeSG();
 }
 
