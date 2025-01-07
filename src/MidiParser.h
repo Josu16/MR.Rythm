@@ -4,36 +4,13 @@
 #include <Arduino.h>
 #include <SdFat.h>
 
-struct MidiEvent {
-    uint8_t type;      // Tipo de evento: NOTE_ON o NOTE_OFF
-    uint8_t note;      // Nota MIDI
-    uint8_t velocity;  // Velocidad
-    uint32_t tick;     // Tiempo absoluto en ticks
-};
- 
-struct Pattern {
-    char tackName[15] = {0};
-    uint16_t tempo;
-    uint8_t numerator;
-    uint8_t denominator;
-    uint8_t measures; // IMPORTANT: limitado a 255 compases.
-    uint32_t totalTicks;
-    uint32_t numEvents;
-    unsigned int totalVariants;
-    MidiEvent events[5][1000];
-    /*
-    events puede llegar a pesar por variante con 1000 eventos 8kb
-    es muchísimo más que los 400 bytes que el midi original, pero
-    este formato permite ya no tener que procesar nada en tiempo real.
-     */
-    int eventsByVariant[5];
-};
+#include "Pattern.h"
+#include "InternalFlashFS.h"
 
 struct MidiFile {
     String midiFile;     // Nombre completo del archivo
     String patternName;  // Nombre del patrón
 };
-
 
 class MidiParser {
     private:
@@ -46,12 +23,19 @@ class MidiParser {
 
         const char* directoryPath = "/patterns"; // Ruta del directorio
         std::vector<MidiFile> &midiFiles;
-        Pattern &currentPattern;
+        Pattern currentPattern;
+        Pattern &playingPattern;
         unsigned int currentVariantIndex;
-        unsigned int patternIndex = 1;
+        char currentPatternName[15];
 
         int noteToChannel[128];
 
+        InternalFlashFS mr9Fs;
+
+        // PRUEBAS
+        int maxEventsPattern = 0;
+
+        bool parsePattern(String filename);
         void setupNoteToChannelMapping();
         uint32_t readVLQ();
         bool parseHeader();
@@ -62,9 +46,8 @@ class MidiParser {
         void parseFile(String fullPath);
     public:
         MidiParser(std::vector<MidiFile> &files, Pattern& currentPattern);
-        uint16_t getNumEvents(unsigned int variant);
         void getAvailablePatterns();
-        bool parsePattern(unsigned int ptrnIndex);
+        void loadPattern(uint8_t numberPattern, Pattern &requiredPattern);
 };
 
 #endif

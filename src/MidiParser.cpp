@@ -1,11 +1,12 @@
 #include <MidiParser.h>
 #include <SdFat.h>
 #include <math.h>
+#include <string>
 
 MidiParser::MidiParser(std::vector<MidiFile> &files, Pattern& pattern)
 :
     midiFiles(files),
-    currentPattern(pattern)
+    playingPattern(pattern)
 {
 
     if (!sd.begin(SdioConfig()))
@@ -14,17 +15,9 @@ MidiParser::MidiParser(std::vector<MidiFile> &files, Pattern& pattern)
         return;
     }
 
-    // if (!midiFile)
-    // {
-    //     Serial.println("Error abriendo archivo MIDI");
-    // }
-    // Serial.println("Archivo abierto correctamente");
     setupNoteToChannelMapping();
-
-    Serial.println("Hola parser");
 }
 
-// Inicializar la tabla
 void MidiParser::setupNoteToChannelMapping() {
     // Inicializar todas las notas como "sin canal asignado"
     for (int i = 0; i < 128; ++i) {
@@ -92,7 +85,12 @@ void MidiParser::getAvailablePatterns() {
 
                 // Agrega el nombre del patrón al vector
                 fileInfo.patternName = String(patternName);
+                strncpy(currentPatternName, patternName, 15);
                 midiFiles.push_back(fileInfo);
+
+
+                // AGREGAR LÓGICA DE LECTURA DE ARCHIVOS Y GUARDADO EN FLASH INTERNA.
+                parsePattern(fileName);
             }
         }
 
@@ -105,12 +103,122 @@ void MidiParser::getAvailablePatterns() {
         return a.midiFile < b.midiFile; // Orden ascendente por nombre de archivo
     });
 
-    // Imprime la lista ordenada
-    Serial.println("Archivos MIDI en /patterns:");
-    for (size_t i = 0; i < midiFiles.size(); ++i) {
-        Serial.println(midiFiles[i].patternName);
-        Serial.println(midiFiles[i].midiFile);
+    // // Imprime la lista ordenada
+    // Serial.println("Archivos MIDI en /patterns:");
+    // for (size_t i = 0; i < midiFiles.size(); ++i) {
+    //     Serial.println(midiFiles[i].patternName);
+    //     Serial.println(midiFiles[i].midiFile);
+    // }
+    Serial.print("El patrón más grande tiene: eventos = ");
+    Serial.println(maxEventsPattern);
+    Serial.println("Listando patrones completos:");
+    mr9Fs.listInternalMemoryPatterns();
+}
+
+bool MidiParser::parsePattern(String filename)
+{
+
+    Serial.print("entramos a parsear a: ");
+    Serial.println(filename);
+    numRealEvents = 0;
+    currentVariantIndex = 0;
+    bool valid = true;
+
+    currentPattern.number = filename.substring(0, 3).toInt();
+
+    String fullPath = String(directoryPath) + "/" + filename;
+        
+    parseFile(fullPath);
+
+    currentVariantIndex ++;
+    // RECUPERAR VARIANTES DE PATRÓN
+    SdFile dir;
+    // construir path del directorio
+    char subDirectory[50];
+    strncpy(subDirectory, directoryPath, 10);
+    // char subDirBuffer[4]; // 3 dígitos + terminador nulo
+    // // Formateamos el número con ceros a la izquierda
+    // snprintf(subDirBuffer, sizeof(subDirBuffer), "%03d", ptrnIndex);
+    strcat(subDirectory, "/");
+    strcat(subDirectory, filename.substring(0, 3).c_str());
+    // Verificar si el directorio existe
+    Serial.print("Directorio de variantes: ");
+    Serial.println(subDirectory);
+    if (!sd.exists(subDirectory) || !dir.open(subDirectory)) {
+        Serial.println("Patron sin variantes");
+        valid = false;
     }
+    else {
+        while (midiFile.openNext(&dir, O_READ)) {
+            char fileName[30];
+            midiFile.getName(fileName, sizeof(fileName));
+            if ((strstr(fileName, ".mid") || strstr(fileName, ".MID")) && !strstr(fileName, "._")) { 
+                numRealEvents = 0;
+                fullPath = String(subDirectory) + "/" + fileName;
+                parseFile(fullPath);
+                currentVariantIndex ++;
+            }
+        }
+    }
+    currentPattern.totalVariants = currentVariantIndex;
+
+    // AQUI VA EL GUARDADO EN MEMORIA flash interna
+    mr9Fs.savePattern(currentPattern);
+
+    // // VALIDACIÓN DE EXISTENCIA DE SECUENCIA EN EL ÍNDICE
+    // if (ptrnIndex > midiFiles.size()) {
+    //     for (size_t i = 0; i < 15; i++) {
+    //         currentPattern.tackName[i] = '\0';
+    //     }
+    //     currentPattern.tempo = 120;
+    //     currentPattern.totalTicks = 384;
+
+    //     valid = false; // no hay más archivos
+    // } else {
+    //     this -> patternIndex = ptrnIndex;
+
+        
+    // }
+    return valid;
+}
+
+void MidiParser::parseFile(String fullPath) {
+    /*
+    TODO: SOLUCIÓN TEMPORAL al problema de la lectura de archivos midi
+    esta configuración debe desaparecer para dar paso a la lectura
+    desde la memoria flash más rápida, por ahora los samples y 
+    los archivos midi se leen al cambiar de patrón.
+    */
+    if (!sd.begin(SdioConfig()))
+    {
+        Serial.println("Error inicializando la tarjeta SD");
+        return;
+    }
+    const char* filePath = fullPath.c_str(); // Convierte a const char* para SdFat
+    Serial.println(filePath); // Imprime la ruta completa para depuración
+    midiFile = sd.open(filePath, FILE_READ);
+    if (!midiFile)
+    {
+        Serial.println("Error abriendo archivo MIDI Base");
+        return;
+    }
+
+    if (parseHeader())
+    {
+        while (midiFile.available())
+        {
+            parseTrack();
+            // break;
+        }
+    }
+    Serial.print("Eventos totales:");
+    Serial.println(numRealEvents);
+    currentPattern.eventsByVariant[currentVariantIndex] = numRealEvents;
+    midiFile.close();
+    
+    // PRUEBAS
+    if (numRealEvents > maxEventsPattern)
+        maxEventsPattern = numRealEvents;
 }
 
 uint32_t MidiParser::readVLQ()
@@ -257,13 +365,13 @@ void MidiParser::parseTrack()
                     uint8_t controller = midiFile.read();
                     uint8_t value = midiFile.read();
                     // handleMidiEvent(messageType, channel, controller, value, currentTick);
-                    Serial.println("Control change");
+                    //Serial.println("Control change");
                     break;
                 }
                 case 0xC0: { // Program Change
                     uint8_t program = midiFile.read();
                     // handleMidiEvent(messageType, channel, program, 0, currentTick); // Usamos 0 como valor por defecto
-                    Serial.println("Control change");
+                    //Serial.println("Control change");
                     break;
                 }
                 case 0xD0: { // Aftertouch de Canal
@@ -276,7 +384,7 @@ void MidiParser::parseTrack()
                     uint8_t msb = midiFile.read();
                     uint16_t pitchBendValue = (msb << 7) | lsb;
                     // handleMidiEvent(messageType, channel, pitchBendValue, 0, currentTick);
-                    Serial.println("Control change");
+                    //Serial.println("Control change");
                     break;
                 }
                 default:
@@ -298,100 +406,11 @@ void MidiParser::parseTrack()
     Serial.println(currentPattern.measures);
     Serial.print("Total ticks: ");
     Serial.println(currentPattern.totalTicks);
+    
     // Guardar el nombre del patrón desde el archivo
-    strncpy(currentPattern.tackName, midiFiles[patternIndex-1].patternName.c_str(), sizeof(currentPattern.tackName) - 1);
+    strncpy(currentPattern.tackName, currentPatternName, 15);
     currentPattern.tackName[sizeof(currentPattern.tackName) - 1] = '\0'; // Asegurar terminación nula
-}
 
-bool MidiParser::parsePattern(unsigned int ptrnIndex)
-{
-    numRealEvents = 0;
-    currentVariantIndex = 0;
-    bool valid = true;
-    // VALIDACIÓN DE EXISTENCIA DE SECUENCIA EN EL ÍNDICE
-    if (ptrnIndex > midiFiles.size()) {
-        for (size_t i = 0; i < 15; i++) {
-            currentPattern.tackName[i] = '\0';
-        }
-        currentPattern.tempo = 120;
-        currentPattern.totalTicks = 384;
-
-        valid = false; // no hay más archivos
-    } else {
-        this -> patternIndex = ptrnIndex;
-
-        String fullPath = String(directoryPath) + "/" + midiFiles[ptrnIndex-1].midiFile;
-        
-        parseFile(fullPath);
-
-        currentVariantIndex ++;
-        // RECUPERAR VARIANTES DE PATRÓN
-        SdFile dir;
-        // construir path del directorio
-        char subDirectory[50];
-        strncpy(subDirectory, directoryPath, 10);
-        char subDirBuffer[4]; // 3 dígitos + terminador nulo
-        // Formateamos el número con ceros a la izquierda
-        snprintf(subDirBuffer, sizeof(subDirBuffer), "%03d", ptrnIndex);
-        strcat(subDirectory, "/");
-        strcat(subDirectory, subDirBuffer);
-        // Verificar si el directorio existe
-        Serial.print("Directorio: ");
-        Serial.println(subDirectory);
-        if (!sd.exists(subDirectory) || !dir.open(subDirectory)) {
-            Serial.println("El directorio no existe o No se pudo abrir el subdirectorio");
-            valid = false;
-        }
-        else {
-            while (midiFile.openNext(&dir, O_READ)) {
-                char fileName[30];
-                midiFile.getName(fileName, sizeof(fileName));
-                if ((strstr(fileName, ".mid") || strstr(fileName, ".MID")) && !strstr(fileName, "._")) { 
-                    numRealEvents = 0;
-                    fullPath = String(subDirectory) + "/" + fileName;
-                    parseFile(fullPath);
-                    currentVariantIndex ++;
-                }
-            }
-        }
-        currentPattern.totalVariants = currentVariantIndex;
-    }
-    return valid;
-}
-
-void MidiParser::parseFile(String fullPath) {
-    /*
-    TODO: SOLUCIÓN TEMPORAL al problema de la lectura de archivos midi
-    esta configuración debe desaparecer para dar paso a la lectura
-    desde la memoria flash más rápida, por ahora los samples y 
-    los archivos midi se leen al cambiar de patrón.
-    */
-    if (!sd.begin(SdioConfig()))
-    {
-        Serial.println("Error inicializando la tarjeta SD");
-        return;
-    }
-    const char* filePath = fullPath.c_str(); // Convierte a const char* para SdFat
-    Serial.println(filePath); // Imprime la ruta completa para depuración
-    midiFile = sd.open(filePath, FILE_READ);
-    if (!midiFile)
-    {
-        Serial.println("Error abriendo archivo MIDI Base");
-        return;
-    }
-
-    if (parseHeader())
-    {
-        while (midiFile.available())
-        {
-            parseTrack();
-            // break;
-        }
-    }
-    Serial.print("Eventos totales:");
-    Serial.println(numRealEvents);
-    currentPattern.eventsByVariant[currentVariantIndex] = numRealEvents;
-    midiFile.close();
 }
 
 bool MidiParser::handleMetaEvent(uint8_t type, uint32_t length)
@@ -491,6 +510,6 @@ void MidiParser::handleMidiEvent(uint8_t status, uint8_t note, uint8_t velocity,
     numRealEvents ++;
 }
 
-uint16_t MidiParser::getNumEvents(unsigned int variant) {
-    return currentPattern.eventsByVariant[variant];
+void MidiParser::loadPattern(uint8_t numberPattern, Pattern &requiredPattern) {
+    mr9Fs.getPattern(numberPattern, requiredPattern);
 }

@@ -37,7 +37,8 @@ void ABRSequencer::readAllPatterns() {
 
 void ABRSequencer::initializePattern() {
 
-    parser.parsePattern(controls.readPtrn());
+    // parser.parsePattern(controls.readPtrn());
+    parser.loadPattern(controls.readPtrn(), pattern);
     // Copia segura del nuevo nombre
     strncpy(valuesMainScreen.namePtrn, pattern.tackName, 15);
 
@@ -77,14 +78,7 @@ void ABRSequencer::initializePattern() {
     valuesMainScreen.currentVariationIndex = lastVariant;
     controls.setMaxVariant(pattern.totalVariants);
 
-    // El pattern LENGHT es conflictivo
-    /* 
-    TODO: revisar otro enfoque alterno porque parece ser que si se calcula este valor
-    muy pronto después de hacer el parseo del patrón, este puede queda incompleto, por tanto
-    la secuencia tendrá una longitud menor a la esperada, un enfoque puede ser manejar la variable 
-    como un apuntador al arreglo de tamaños de patrones para evitar problemas de actualización.
-    */
-    patternLength = parser.getNumEvents(valuesMainScreen.currentVariationIndex - 1);
+    patternLength = pattern.eventsByVariant[valuesMainScreen.currentVariationIndex - 1];
 
     // Actualizar timer y tempo
     // Ubicación temporal en función de la funcionalidad,
@@ -228,7 +222,7 @@ void ABRSequencer::loop() {
     uint8_t newVariationIndex = controls.readVariant();
     if (newVariationIndex != valuesMainScreen.currentVariationIndex ) {
         valuesMainScreen.currentVariationIndex = newVariationIndex;
-        patternLength = parser.getNumEvents(valuesMainScreen.currentVariationIndex - 1);
+        patternLength = pattern.eventsByVariant[valuesMainScreen.currentVariationIndex - 1];
     }
 
     // Sound Generator
