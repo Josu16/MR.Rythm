@@ -4,6 +4,8 @@
 
 #include <Audio.h>
 #include "pins.h"
+#include "HNBuffer.h"
+#include "MidiSoundsMap.h"
 
 /*
 Para la conexión del PCM 5102 se utilizaron las siguientes referencias de conexión:
@@ -21,8 +23,9 @@ class HyperNATURAL {
 public:
     HyperNATURAL();
     void initializeSG();
-    void playFile(const char *filename);
-    void loop(volatile bool &playSnare);
+    void playFile(uint8_t note);
+
+    void playSounds(HNBuffer &soundsPlaying);
 
 private:
 

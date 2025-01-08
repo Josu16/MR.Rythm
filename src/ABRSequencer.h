@@ -11,6 +11,7 @@
 #include "UI.h"
 #include "Control.h"
 #include "HyperNATURAL.h"
+#include "HNBuffer.h"
 
 class ABRSequencer {
     private:
@@ -62,9 +63,8 @@ class ABRSequencer {
 
         // HyperNATURAL Sound Generator
         HyperNATURAL soundGenerator;
-
-        // ZONA TEMPORAL DE PRUEBAS
-        volatile bool playSnare = false;
+        HNBuffer soundsPlaying;
+        volatile bool fullBuffer;
 
     public:
         ABRSequencer(uint8_t PPQN);

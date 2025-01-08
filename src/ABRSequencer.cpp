@@ -120,8 +120,6 @@ void ABRSequencer::onTimer() {
             playledState = true;
             playLedOffTick = currentTick + 16; // Apagar el LED después de 24 ticks
             valuesMainScreen.currentBlack ++;
-
-            playSnare = true;
         }
         if (playledState && currentTick >= playLedOffTick) {
             // Apagar el LED después de 24 ticks
@@ -139,6 +137,19 @@ void ABRSequencer::onTimer() {
                 Serial7.write(pattern.events[valuesMainScreen.currentVariationIndex - 1][indexEvent].type);
                 Serial7.write(pattern.events[valuesMainScreen.currentVariationIndex - 1][indexEvent].note);
                 Serial7.write(pattern.events[valuesMainScreen.currentVariationIndex - 1][indexEvent].velocity);
+
+                // Enviar al módulo HyperNATURAL
+                if (!soundsPlaying.isFull()) {
+                    if ((pattern.events[valuesMainScreen.currentVariationIndex - 1][indexEvent].type & 0xF0) == 0x90) {
+                        // Serial.print("agregada la nota:");
+                        // Serial.println(pattern.events[valuesMainScreen.currentVariationIndex - 1][indexEvent].type);
+                        soundsPlaying.enqueue(pattern.events[valuesMainScreen.currentVariationIndex - 1][indexEvent].note);
+                    }
+                    // else 
+                    //     Serial.println("Nota de desactivación");
+                }
+                else
+                    fullBuffer = true;
             }
         }
         if (valuesMainScreen.currentBlack > pattern.numerator) {
@@ -222,7 +233,11 @@ void ABRSequencer::loop() {
     }
 
     // Sound Generator
-    soundGenerator.loop(playSnare);
+    soundGenerator.playSounds(soundsPlaying);
+    if (fullBuffer) {
+        Serial.println("Buffer de Hyper NATURAL lleno");
+        fullBuffer = false;
+    }
 }
 
 void ABRSequencer::updateTrianglePosition() {
