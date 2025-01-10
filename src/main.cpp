@@ -9,6 +9,8 @@ void setup() {
     // Incialización del secuenciador
     sequencer.beginSequencer();
     Serial.println("Secuenciador MIDI Iniciado...");
+    Serial.print("Velocidad del cpu");
+    Serial.println(F_CPU);
 }
 
 void loop() {
