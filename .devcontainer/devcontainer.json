@@ -1,0 +1,23 @@
+// {
+//    "name": "PlatformIO MR-990",
+//    "build": {
+//       "dockerfile": "Dockerfile"
+//    },
+//    "customizations": {
+//       "vscode": {
+//          "settings": {
+//             "workbench.colorTheme": "Default Dark+"
+//          },
+//          "extensions": [
+//             "platformio.platformio-ide"
+//          ]
+//       }
+//    },
+//    "runArgs": [
+//       "--privileged",
+//       "--device=/dev/bus/usb:/dev/bus/usb"
+//    ]
+// }
+// Se abandonó el proyecto de manejar dev containers por la falta y complejidad del soporte
+// para compartir dispositivos usb desde mac/windows hacia linux, el comando "--device=/dev/bus/usb:/dev/bus/usb"
+// no funciona en win/mac por temas de cómo se maneja el proceso padre de docker en estos sistemas.

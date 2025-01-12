@@ -1,7 +1,7 @@
 #ifndef ABRSEQUENCER_H
 #define ABRSEQUENCER_H
 
-#include <arduino.h>
+#include <Arduino.h>
 #include <IntervalTimer.h>
 #include <vector>
 
