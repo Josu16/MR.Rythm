@@ -21,3 +21,17 @@
 // Se abandonó el proyecto de manejar dev containers por la falta y complejidad del soporte
 // para compartir dispositivos usb desde mac/windows hacia linux, el comando "--device=/dev/bus/usb:/dev/bus/usb"
 // no funciona en win/mac por temas de cómo se maneja el proceso padre de docker en estos sistemas.
+
+// Se retoma el proyecto de contenedores porque para la parte bare metal sí se utilizará
+// una máquina con linux.
+
+{
+   "name": "Hyper NATURAL Circle Compiler",
+   "build": {
+     "dockerfile": "Dockerfile"
+   },
+   "workspaceFolder": "/workspace/HyperNaturalSG",
+   "mounts": [
+     "source=${localWorkspaceFolder}/HyperNaturalSoundGenerator,target=/workspace/HyperNaturalSG,type=bind"
+   ]
+ }
