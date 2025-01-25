@@ -193,14 +193,27 @@ TShutdownMode CKernel::Run (void)
 	m_Logger.Write (FromKernel, LogNotice, "Playing modulated 440 Hz tone");
 
 	// output sound data
-	for (unsigned nCount = 0; m_pSound->IsActive (); nCount++)
-	{
-		m_Scheduler.MsSleep (QUEUE_SIZE_MSECS / 2);
+	// for (unsigned nCount = 0; m_pSound->IsActive (); nCount++)
+	// {
+	// 	m_Scheduler.MsSleep (QUEUE_SIZE_MSECS / 2);
 
-		// fill the whole queue free space with data
-		WriteSoundData (nQueueSizeFrames - m_pSound->GetQueueFramesAvail ());
+	// 	// fill the whole queue free space with data
+	// 	WriteSoundData (nQueueSizeFrames - m_pSound->GetQueueFramesAvail ());
 
-		m_Screen.Rotor (0, nCount);
+	// 	m_Screen.Rotor (0, nCount);
+	// }
+	const char *mensaje = "--------- Hola desde Circle\r\n";
+	m_Serial.Write(mensaje, strlen(mensaje));
+	while (1) {
+		char c;
+		int nRead = m_Serial.Read(&c, 1);
+		if (nRead > 0) {
+			if (c == '1') {
+				m_ActLED.On();
+			}
+			else 
+				m_ActLED.Off();
+		}
 	}
 
 	return ShutdownHalt;

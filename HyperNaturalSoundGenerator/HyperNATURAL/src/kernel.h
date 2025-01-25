@@ -25,6 +25,7 @@
 #include <circle/devicenameservice.h>
 #include <circle/screen.h>
 #include <circle/serial.h>
+#include <circle/gpiopin.h>
 #include <circle/exceptionhandler.h>
 #include <circle/interrupt.h>
 #include <circle/timer.h>
@@ -85,6 +86,8 @@ private:
 
 	COscillator m_LFO;
 	COscillator m_VFO;
+   CGPIOPin          *m_pLedPin;     // Pin para LED
+	bool ledState = false;
 };
 
 #endif

@@ -23,6 +23,8 @@ ABRSequencer::ABRSequencer(uint8_t PPQN)
     pinMode(14, OUTPUT);
     pinMode(15, OUTPUT);
 
+    Serial6.begin(115200);
+    
     // Vincula la instancia actual a la referencia estática
     instance = this;
 
@@ -120,11 +122,13 @@ void ABRSequencer::onTimer() {
             playledState = true;
             playLedOffTick = currentTick + 16; // Apagar el LED después de 24 ticks
             valuesMainScreen.currentBlack ++;
+            Serial6.print("1");
         }
         if (playledState && currentTick >= playLedOffTick) {
             // Apagar el LED después de 24 ticks
             digitalWrite(PIN_LED_PLAYING, LOW);
             playledState = false;
+            Serial6.print("0");
         }
 
         for (unsigned int indexEvent = 0; indexEvent < patternLength; indexEvent++) {
@@ -237,6 +241,12 @@ void ABRSequencer::loop() {
     if (fullBuffer) {
         Serial.println("Buffer de Hyper NATURAL lleno");
         fullBuffer = false;
+    }
+
+    // Salida serial de RBPI
+    while (Serial6.available() > 0) {
+        char c = Serial6.read();
+        Serial.write(c);
     }
 }
 
