@@ -33,6 +33,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Instala herramientas necesarias
 RUN apt update && apt install -y \
     wget \
+    git \
     xz-utils \
     build-essential \
     libstdc++6 \
@@ -54,9 +55,11 @@ ENV PATH="/opt/arm-toolchain/arm-gnu-toolchain-13.2.Rel1-x86_64-aarch64-none-elf
 # RUN echo 'alias gccarm="aarch64-none-elf-gcc"' >> /etc/bash.bashrc
 
 # Establece el directorio de trabajo
+RUN mkdir -p /workspace
+
 WORKDIR /workspace
 
-RUN mkdir -p /workspace/HyperNaturalSG
+# RUN mkdir -p /workspace/SoundGenerator
 
 # Comando por defecto para el contenedor
 CMD ["/bin/bash"]

@@ -30,8 +30,15 @@
    "build": {
      "dockerfile": "Dockerfile"
    },
-   "workspaceFolder": "/workspace/HyperNaturalSG",
+   "workspaceFolder": "/workspace/SoundGenerator",
    "mounts": [
-     "source=${localWorkspaceFolder}/HyperNaturalSoundGenerator,target=/workspace/HyperNaturalSG,type=bind"
-   ]
+     "source=${localWorkspaceFolder}/SoundGenerator,target=/workspace/SoundGenerator,type=bind"
+   ],
+   "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.cpptools"
+      ]
+    }
+   }
  }
