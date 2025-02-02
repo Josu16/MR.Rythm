@@ -33,9 +33,10 @@
 #include <circle/sched/scheduler.h>
 #include <circle/i2cmaster.h>
 #include <circle/usb/usbhcidevice.h>
+#include <circle/fs/fat/fatfs.h>
 #include <circle/sound/soundbasedevice.h>
 #include <circle/types.h>
-#include "oscillator.h"
+// #include "oscillator.h"
 #include <math.h>    // en C++
 
 #ifdef USE_VCHIQ_SOUND
@@ -84,10 +85,12 @@ private:
 #endif
 	CSoundBaseDevice	*m_pSound;
 
-	COscillator m_LFO;
-	COscillator m_VFO;
+	// COscillator m_LFO;
+	// COscillator m_VFO;
    CGPIOPin          *m_pLedPin;     // Pin para LED
 	bool ledState = false;
+	CFATFileSystem		m_FileSystem;
+
 };
 
 #endif
