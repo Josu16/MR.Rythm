@@ -23,7 +23,7 @@ ABRSequencer::ABRSequencer(uint8_t PPQN)
     pinMode(14, OUTPUT);
     pinMode(15, OUTPUT);
 
-    Serial6.begin(115200);
+    Serial6.begin(9600, SERIAL_8N1);
     
     // Vincula la instancia actual a la referencia estática
     instance = this;
