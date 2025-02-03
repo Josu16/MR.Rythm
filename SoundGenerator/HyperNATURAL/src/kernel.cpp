@@ -23,7 +23,6 @@
 #define NSAMPLES 3
 
 // #define IO_BUFFER_SIZE 1024
-
 #include "kernel.h"
 #include "config.h"
 #include <circle/sound/pwmsoundbasedevice.h>
@@ -61,11 +60,7 @@
 
 static const char FromKernel[] = "kernel";
 
-static const char *wavMemory[3] = {
-	"lprock6.wav",
-	"snare.wav",
-	"hat.wav"
-};
+// static const char *wavMemory;
 
 struct WAVHeader {
     char chunkID[4];        // "RIFF"
@@ -81,6 +76,11 @@ struct WAVHeader {
     unsigned short bitsPerSample; // Bits por muestra (16 bits = 2 bytes)
     char subChunk2ID[4];    // "data"
     unsigned subChunk2Size; // Tamaño de los datos de audio (en bytes)
+};
+
+struct WavDirectory {
+    int nota;
+	 char nombre[12];
 };
 
 CKernel::CKernel (void)
@@ -193,14 +193,17 @@ TShutdownMode CKernel::Run (void)
 #endif
 	}
 	assert (m_pSound != 0);
+	bool isFirstWav = true;
 
-	// initialize oscillators
-	// m_LFO.SetWaveform (WaveformSine);
-	// m_LFO.SetFrequency (10.0);
+	// configure sound device
+	if (!m_pSound->AllocateQueue (QUEUE_SIZE_MSECS)) // Creación o asignación de tamaño de buffer de audio en MS (100)
+	{
+		m_Logger.Write (FromKernel, LogPanic, "No se pudo ubicar la cola de sonido");
+	}
 
-	// m_VFO.SetWaveform (WaveformSine);
-	// m_VFO.SetFrequency (440.0);
-	// m_VFO.SetModulationVolume (0.25);
+	m_pSound->SetWriteFormat (FORMAT, WRITE_CHANNELS); // debe determinar cómo va a enviar los paquetes de bytes (en fn a los canales y bit depth)
+
+	unsigned nQueueSizeFrames = m_pSound->GetQueueSizeFrames (); // se obtiene el tamaño del buffer pero en frames
 
 
 	// APERTURA DE ARCHIVOS
@@ -219,7 +222,11 @@ TShutdownMode CKernel::Run (void)
 		m_Logger.Write (FromKernel, LogPanic, "Cannot mount partition: %s", PARTITION);
 	}
 
-	// Show contents of root directory
+	// MOSTRAR EL DIRECTORIO ACTUAL
+	WavDirectory wavMemory[10];
+	int numberWavs = 0;
+
+
 	TDirentry Direntry;
 	TFindCurrentEntry CurrentEntry;
 	unsigned nEntry = m_FileSystem.RootFindFirst (&Direntry, &CurrentEntry);
@@ -228,10 +235,15 @@ TShutdownMode CKernel::Run (void)
 		if (!(Direntry.nAttributes & FS_ATTRIB_SYSTEM)) // Si no es un archivo de sistema
 		{
 			CString FileName;
-			FileName.Format ("%-14s", Direntry.chTitle);
+			// FileName.Format ("%-10s", Direntry.chTitle);
 
 			m_Screen.Write ((const char *) FileName, FileName.GetLength ());
-			m_Logger.Write (FromKernel, LogNotice, "Nombre del archivo %s ", (const char *) FileName);
+			m_Logger.Write (FromKernel, LogNotice, "Nombre del archivo %s ", (const char *) Direntry.chTitle);
+			strcpy(wavMemory[numberWavs].nombre, Direntry.chTitle);
+			numberWavs++;
+
+			// Insertar en el mapa
+			// fileMap[my_custom_index] = std::string((const char*)FileName); cencerro6.wav
 			m_Scheduler.MsSleep (100);
 			// const char *mensaje =   FileName;
 			// m_Serial.Write(mensaje, strlen(mensaje));
@@ -246,18 +258,25 @@ TShutdownMode CKernel::Run (void)
 	}
 	m_Screen.Write ("\n", 1);
 
-	// for (unsigned indexSample = 0; indexSample < NSAMPLES; indexSample++) { 
+
+	for (int i = 0; i<numberWavs; i++ ) {
+		m_Logger.Write (FromKernel, LogNotice, "Wav: %s ", wavMemory[i].nombre);
+	}
+	// Abrir los archivos y reproducirlos.
+
 	// AQUI DEBE INICIAR EL CÍCLO
 	// while (1) {
+	
+	for (int j = 0; j<numberWavs; j++ ) { 
 		WAVHeader header;
 
-		unsigned sample = m_FileSystem.FileOpen(wavMemory[0]);
+		unsigned sample = m_FileSystem.FileOpen(wavMemory[j].nombre);
 
 		if (sample == 0) { // será cero cuando no haya más archivos en el directorio
-			m_Logger.Write (FromKernel, LogPanic, "No se pudo abrir: %s ", wavMemory[0]);
+			m_Logger.Write (FromKernel, LogPanic, "No se pudo abrir: %s ", wavMemory[j].nombre);
 		}
 		else {
-			m_Logger.Write (FromKernel, LogNotice, "Abierto: %s ", wavMemory[0]);
+			m_Logger.Write (FromKernel, LogNotice, "Abierto: %s ", wavMemory[j].nombre);
 			char wavHeader[44];
 			unsigned nEntryFile = m_FileSystem.FileRead(sample, wavHeader, 44);
 			if (nEntryFile == FS_ERROR) {
@@ -329,34 +348,24 @@ TShutdownMode CKernel::Run (void)
 			// 	m_Logger.Write (FromKernel, LogPanic, "No se pudo cerrar el archivo");
 			// }
 		}
-		// }
 
-		// return ShutdownHalt;
-
-		// APERTURA DE ARCHIVOS ------- FIN
-
-		// configure sound device
-		if (!m_pSound->AllocateQueue (QUEUE_SIZE_MSECS)) // Creación o asignación de tamaño de buffer de audio en MS (100)
-		{
-			m_Logger.Write (FromKernel, LogPanic, "No se pudo ubicar la cola de sonido");
-		}
-
-		m_pSound->SetWriteFormat (FORMAT, WRITE_CHANNELS); // debe determinar cómo va a enviar los paquetes de bytes (en fn a los canales y bit depth)
-
-		// initially fill the whole queue with data
-		unsigned nQueueSizeFrames = m_pSound->GetQueueSizeFrames (); // se obtiene el tamaño del buffer pero en frames
+		// Preparación para reproducción.
 
 		unsigned remainingBytesToRead = header.subChunk2Size;
 
 		writeWavData (nQueueSizeFrames, sample, remainingBytesToRead);
 
-		// start sound device
-		if (!m_pSound->Start ())
-		{
-			m_Logger.Write (FromKernel, LogPanic, "Cannot start sound device");
-		}
+		if (isFirstWav) {
+			// start sound device
+			if (!m_pSound->Start ())
+			{
+				m_Logger.Write (FromKernel, LogPanic, "Cannot start sound device");
+			}
 
-		m_Logger.Write (FromKernel, LogNotice, "Se inicio el audio");
+			m_Logger.Write (FromKernel, LogNotice, "Se inicio el audio");
+
+			isFirstWav = false;
+		}
 
 		int i = 0;
 		while (m_pSound->IsActive() && remainingBytesToRead > 0) {
@@ -372,29 +381,12 @@ TShutdownMode CKernel::Run (void)
 			m_Logger.Write (FromKernel, LogPanic, "No se pudo cerrar el archivo");
 		}
 
-		m_Scheduler.MsSleep (5000);
+		m_Scheduler.MsSleep (2000);
 
 		m_Logger.Write (FromKernel, LogNotice, "FINALIZÓ LA EJECUCIÓN <3");
 
 		// AQUI DEBE TERMINAR EL CICLO
-	// }
-
-
-
-	// m_Logger.Write (FromKernel, LogNotice, "Playing modulated 440 Hz tone");
-
-
-
-	// // output sound data
-	// for (unsigned nCount = 0; m_pSound->IsActive (); nCount++)
-	// {
-	// 	m_Scheduler.MsSleep (QUEUE_SIZE_MSECS / 2);
-
-	// 	// fill the whole queue free space with data
-	// 	WriteSoundData (nQueueSizeFrames - m_pSound->GetQueueFramesAvail ());
-
-	// 	m_Screen.Rotor (0, nCount);
-	// }
+	}
 
 	// const char *mensaje = "--------- Hola desde Circle\r\n";
 	// m_Serial.Write(mensaje, strlen(mensaje));
@@ -416,7 +408,7 @@ TShutdownMode CKernel::Run (void)
 void CKernel::writeWavData(unsigned nFrames, unsigned file, unsigned &remainingBytes) {
 	// nFrames dice cuánto espacio (en frames) tengo en el buffer general de audio
 
-	const unsigned nFramesPerWrite = 1024;
+	const unsigned nFramesPerWrite = 4096;
 
 	u8 bufferToCircle[nFramesPerWrite * WRITE_CHANNELS * TYPE_SIZE];
 	// el fragmento de datos que se mandará al audio gestionado por circle, es un buffer temporal.
