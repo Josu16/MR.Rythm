@@ -20,14 +20,14 @@
 #ifndef _config_h
 #define _config_h
 
-#define SAMPLE_RATE	48000		// overall system clock
+#define SAMPLE_RATE	44100		// overall system clock
 
 #define WRITE_FORMAT	1		// 0: 8-bit unsigned, 1: 16-bit signed, 2: 24-bit signed
 #define WRITE_CHANNELS	2		// 1: Mono, 2: Stereo
 
 #define VOLUME		0.5		// [0.0, 1.0]
 
-#define QUEUE_SIZE_MSECS 100		// size of the sound queue in milliseconds duration
+#define QUEUE_SIZE_MSECS 200		// size of the sound queue in milliseconds duration
 #define CHUNK_SIZE	(384 * 10)	// number of samples, written to sound device at once
 
 #define DAC_I2C_ADDRESS	0		// I2C slave address of the DAC (0 for auto probing)

@@ -63,7 +63,11 @@ public:
 private:
 	void WriteSoundData (unsigned nFrames);
 
+	void writeWavData (unsigned nFrames, unsigned file, unsigned &remainingBytes);
+
 	void GetSoundData (void *pBuffer, unsigned nFrames);
+
+	void PrintMemoryInfo();
 
 private:
 	// do not change this order

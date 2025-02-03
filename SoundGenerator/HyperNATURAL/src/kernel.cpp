@@ -22,6 +22,8 @@
 #define FILENAME	"circle.txt"
 #define NSAMPLES 3
 
+// #define IO_BUFFER_SIZE 1024
+
 #include "kernel.h"
 #include "config.h"
 #include <circle/sound/pwmsoundbasedevice.h>
@@ -30,6 +32,7 @@
 #include <circle/sound/usbsoundbasedevice.h>
 #include <circle/machineinfo.h>
 #include <circle/util.h>
+#include <circle/memory.h>
 #include <assert.h>
 
 #ifdef USE_VCHIQ_SOUND
@@ -59,8 +62,8 @@
 static const char FromKernel[] = "kernel";
 
 static const char *wavMemory[3] = {
+	"lprock6.wav",
 	"snare.wav",
-	"tom.wav",
 	"hat.wav"
 };
 
@@ -243,15 +246,18 @@ TShutdownMode CKernel::Run (void)
 	}
 	m_Screen.Write ("\n", 1);
 
-	for (unsigned indexSample = 0; indexSample < NSAMPLES; indexSample++) {
+	// for (unsigned indexSample = 0; indexSample < NSAMPLES; indexSample++) { 
+	// AQUI DEBE INICIAR EL CÍCLO
+	// while (1) {
+		WAVHeader header;
 
-		unsigned sample = m_FileSystem.FileOpen(wavMemory[indexSample]);
+		unsigned sample = m_FileSystem.FileOpen(wavMemory[0]);
 
 		if (sample == 0) { // será cero cuando no haya más archivos en el directorio
-			m_Logger.Write (FromKernel, LogPanic, "No se pudo abrir: %s ", wavMemory[indexSample]);
+			m_Logger.Write (FromKernel, LogPanic, "No se pudo abrir: %s ", wavMemory[0]);
 		}
 		else {
-			m_Logger.Write (FromKernel, LogNotice, "Abierto: %s ", wavMemory[indexSample]);
+			m_Logger.Write (FromKernel, LogNotice, "Abierto: %s ", wavMemory[0]);
 			char wavHeader[44];
 			unsigned nEntryFile = m_FileSystem.FileRead(sample, wavHeader, 44);
 			if (nEntryFile == FS_ERROR) {
@@ -269,7 +275,7 @@ TShutdownMode CKernel::Run (void)
 				}
 
 				// Mapear los datos leídos en nuestra estructura
-				WAVHeader header;
+				
 				memcpy(&header, wavHeader, sizeof(header));
 
 				// Convertir los campos de 4 bytes en cadenas nulas terminadas
@@ -316,50 +322,79 @@ TShutdownMode CKernel::Run (void)
 				{
 					m_Logger.Write(FromKernel, LogError, "Error: Audio Format es %u, se esperaba 1 para PCM", header.audioFormat);
 				}	
-            //     // Aquí podrías procesar los datos de audio...
+				//     // Aquí podrías procesar los datos de audio...
 			}
 			// cierre del archivo
-			if (!m_FileSystem.FileClose (sample)) {
-				m_Logger.Write (FromKernel, LogPanic, "No se pudo cerrar el archivo");
-			}
+			// if (!m_FileSystem.FileClose (sample)) {
+			// 	m_Logger.Write (FromKernel, LogPanic, "No se pudo cerrar el archivo");
+			// }
 		}
-	}
+		// }
 
-	// return ShutdownHalt;
+		// return ShutdownHalt;
 
-	// APERTURA DE ARCHIVOS
+		// APERTURA DE ARCHIVOS ------- FIN
 
-	// configure sound device
-	if (!m_pSound->AllocateQueue (QUEUE_SIZE_MSECS))
-	{
-		m_Logger.Write (FromKernel, LogPanic, "Cannot allocate sound queue");
-	}
+		// configure sound device
+		if (!m_pSound->AllocateQueue (QUEUE_SIZE_MSECS)) // Creación o asignación de tamaño de buffer de audio en MS (100)
+		{
+			m_Logger.Write (FromKernel, LogPanic, "No se pudo ubicar la cola de sonido");
+		}
 
-	m_pSound->SetWriteFormat (FORMAT, WRITE_CHANNELS);
+		m_pSound->SetWriteFormat (FORMAT, WRITE_CHANNELS); // debe determinar cómo va a enviar los paquetes de bytes (en fn a los canales y bit depth)
 
-	// initially fill the whole queue with data
-	unsigned nQueueSizeFrames = m_pSound->GetQueueSizeFrames ();
+		// initially fill the whole queue with data
+		unsigned nQueueSizeFrames = m_pSound->GetQueueSizeFrames (); // se obtiene el tamaño del buffer pero en frames
 
-	WriteSoundData (nQueueSizeFrames);
+		unsigned remainingBytesToRead = header.subChunk2Size;
 
-	// start sound device
-	if (!m_pSound->Start ())
-	{
-		m_Logger.Write (FromKernel, LogPanic, "Cannot start sound device");
-	}
+		writeWavData (nQueueSizeFrames, sample, remainingBytesToRead);
 
-	m_Logger.Write (FromKernel, LogNotice, "Playing modulated 440 Hz tone");
+		// start sound device
+		if (!m_pSound->Start ())
+		{
+			m_Logger.Write (FromKernel, LogPanic, "Cannot start sound device");
+		}
 
-	// output sound data
-	for (unsigned nCount = 0; m_pSound->IsActive (); nCount++)
-	{
-		m_Scheduler.MsSleep (QUEUE_SIZE_MSECS / 2);
+		m_Logger.Write (FromKernel, LogNotice, "Se inicio el audio");
 
-		// fill the whole queue free space with data
-		WriteSoundData (nQueueSizeFrames - m_pSound->GetQueueFramesAvail ());
+		int i = 0;
+		while (m_pSound->IsActive() && remainingBytesToRead > 0) {
 
-		m_Screen.Rotor (0, nCount);
-	}
+			writeWavData(nQueueSizeFrames - m_pSound->GetQueueFramesAvail(), sample, remainingBytesToRead);
+			i++;
+			m_Logger.Write (FromKernel, LogNotice, "Número de iteraciones secundarias %d", i);
+		}
+
+		PrintMemoryInfo();
+
+		if (!m_FileSystem.FileClose (sample)) {
+			m_Logger.Write (FromKernel, LogPanic, "No se pudo cerrar el archivo");
+		}
+
+		m_Scheduler.MsSleep (5000);
+
+		m_Logger.Write (FromKernel, LogNotice, "FINALIZÓ LA EJECUCIÓN <3");
+
+		// AQUI DEBE TERMINAR EL CICLO
+	// }
+
+
+
+	// m_Logger.Write (FromKernel, LogNotice, "Playing modulated 440 Hz tone");
+
+
+
+	// // output sound data
+	// for (unsigned nCount = 0; m_pSound->IsActive (); nCount++)
+	// {
+	// 	m_Scheduler.MsSleep (QUEUE_SIZE_MSECS / 2);
+
+	// 	// fill the whole queue free space with data
+	// 	WriteSoundData (nQueueSizeFrames - m_pSound->GetQueueFramesAvail ());
+
+	// 	m_Screen.Rotor (0, nCount);
+	// }
 
 	// const char *mensaje = "--------- Hola desde Circle\r\n";
 	// m_Serial.Write(mensaje, strlen(mensaje));
@@ -378,6 +413,45 @@ TShutdownMode CKernel::Run (void)
 	return ShutdownHalt;
 }
 
+void CKernel::writeWavData(unsigned nFrames, unsigned file, unsigned &remainingBytes) {
+	// nFrames dice cuánto espacio (en frames) tengo en el buffer general de audio
+
+	const unsigned nFramesPerWrite = 1024;
+
+	u8 bufferToCircle[nFramesPerWrite * WRITE_CHANNELS * TYPE_SIZE];
+	// el fragmento de datos que se mandará al audio gestionado por circle, es un buffer temporal.
+
+	while (nFrames > 0 && remainingBytes > 0) {
+		unsigned nWriteFrames = nFrames < nFramesPerWrite ? nFrames : nFramesPerWrite;
+		// si el número de frames disponibles es menor que el número de frames por escritura,
+		// se escribiá ese número menor, sino toma el tamaño máximo de frames que se pueden escribir. 
+
+		// equivalencia de frames a bytes.
+		unsigned nBytesByIter = nWriteFrames * WRITE_CHANNELS * TYPE_SIZE;
+		
+		// obtener datos de la microsd
+
+		// saber el tamaño de frames que puedo leer de la microsd
+		unsigned nReadedBytes = remainingBytes < nBytesByIter ? remainingBytes : nBytesByIter;
+		
+		unsigned int chunkWavFile = m_FileSystem.FileRead(file, bufferToCircle, nReadedBytes);
+		if (chunkWavFile == FS_ERROR) {
+			m_Logger.Write (FromKernel, LogPanic, "Error al leer fragmento");
+		}
+
+		// se terminaron de obtener los datos de la microsd
+
+		int nResult = m_pSound->Write(bufferToCircle, nReadedBytes);
+		if (nResult != (int)nReadedBytes) {
+			m_Logger.Write(FromKernel, LogError, "no se pudo escribir el bloque") ;
+		}
+	
+		nFrames -= nWriteFrames;
+		remainingBytes -= nReadedBytes;
+		m_Logger.Write(FromKernel, LogNotice, "Frames restantes en el buffer %d, bytes disponibles en la sd %d", nFrames, remainingBytes);
+	}
+}
+
 void CKernel::WriteSoundData (unsigned nFrames)
 {
 	const unsigned nFramesPerWrite = 1000;
@@ -386,6 +460,8 @@ void CKernel::WriteSoundData (unsigned nFrames)
 	while (nFrames > 0)
 	{
 		unsigned nWriteFrames = nFrames < nFramesPerWrite ? nFrames : nFramesPerWrite;
+		// determina si la iteración actual es la última (al verificar si caben todos los frames contemplados
+		// o si ya se manda el sobrante de frames)
 
 		GetSoundData (Buffer, nWriteFrames);
 
@@ -422,5 +498,34 @@ void CKernel::GetSoundData (void *pBuffer, unsigned nFrames)
 
         // Copiar a buffer...
         memcpy(&pBuffer8[i * sizeof(s16)], &nLevel, sizeof(s16));
+    }
+}
+
+void CKernel::PrintMemoryInfo()
+{
+    CMemorySystem *pMemory = CMemorySystem::Get();
+    if (pMemory)
+    {
+        size_t totalMemory = pMemory->GetMemSize();  // Memoria total del sistema
+        size_t freeHeapMemory = pMemory->GetHeapFreeSpace(HEAP_ANY);  // Memoria libre en el heap
+        size_t usedMemory = totalMemory - freeHeapMemory;  // Memoria utilizada
+
+        // Conversión a MB
+        float totalMemoryMB = totalMemory / (1024.0 * 1024.0);
+        float freeMemoryMB = freeHeapMemory / (1024.0 * 1024.0);
+        float usedMemoryMB = usedMemory / (1024.0 * 1024.0);
+
+        // Cálculo de porcentajes
+        float freeMemoryPercentage = (totalMemory > 0) ? ((freeHeapMemory * 100.0) / totalMemory) : 0;
+        float usedMemoryPercentage = 100.0 - freeMemoryPercentage;
+
+        // Log de la información
+        m_Logger.Write(FromKernel, LogNotice, "Memoria Total: %u bytes (%.2f MB)", totalMemory, totalMemoryMB);
+        m_Logger.Write(FromKernel, LogNotice, "Memoria Usada: %u bytes (%.2f MB) - %.2f%%", usedMemory, usedMemoryMB, usedMemoryPercentage);
+        m_Logger.Write(FromKernel, LogNotice, "Memoria Libre: %u bytes (%.2f MB) - %.2f%%", freeHeapMemory, freeMemoryMB, freeMemoryPercentage);
+    }
+    else
+    {
+        m_Logger.Write(FromKernel, LogError, "Error: No se pudo obtener la información de memoria");
     }
 }
