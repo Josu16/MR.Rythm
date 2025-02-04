@@ -33,6 +33,7 @@
 #include <circle/util.h>
 #include <circle/memory.h>
 #include <assert.h>
+#include <circle/synchronize.h>
 
 #ifdef USE_VCHIQ_SOUND
 	#include <vc4/sound/vchiqsoundbasedevice.h>
@@ -82,6 +83,17 @@ struct WavDirectory {
     int nota;
 	 char nombre[12];
 };
+
+long totalSizeWavRoom = 0;
+long usedSizeWavRoom = 0;
+
+struct SampleOffsets {
+	int sampleSize;
+	int startIndex;
+};
+
+SampleOffsets sampleInfo[100];
+int totalSamples = 0;
 
 CKernel::CKernel (void)
 :	m_Screen (m_Options.GetWidth (), m_Options.GetHeight ()),
@@ -267,6 +279,7 @@ TShutdownMode CKernel::Run (void)
 	// AQUI DEBE INICIAR EL CÍCLO
 	// while (1) {
 	
+	// Inspección de archivosy creación de estructuras de almacenamiento
 	for (int j = 0; j<numberWavs; j++ ) { 
 		WAVHeader header;
 
@@ -322,7 +335,7 @@ TShutdownMode CKernel::Run (void)
 				m_Logger.Write(FromKernel, LogNotice, "  Block Align: %u", header.blockAlign);
 				m_Logger.Write(FromKernel, LogNotice, "  Bits per Sample: %u", header.bitsPerSample);
 				m_Logger.Write(FromKernel, LogNotice, "  Subchunk2 ID: %s", header.subChunk2ID);
-				m_Logger.Write(FromKernel, LogNotice, "  Subchunk2 Size: %u", header.subChunk2Size);
+				m_Logger.Write(FromKernel, LogNotice, "  ----Subchunk2 Size: %u", header.subChunk2Size);
 
 				// Validar que el header tenga el formato esperado
 				if (strncmp(header.chunkID, "RIFF", 4) != 0)
@@ -342,18 +355,80 @@ TShutdownMode CKernel::Run (void)
 					m_Logger.Write(FromKernel, LogError, "Error: Audio Format es %u, se esperaba 1 para PCM", header.audioFormat);
 				}	
 				//     // Aquí podrías procesar los datos de audio...
+				totalSizeWavRoom += header.subChunk2Size;
+				sampleInfo[j].sampleSize = header.subChunk2Size;
+				totalSamples ++;
 			}
 			// cierre del archivo
-			// if (!m_FileSystem.FileClose (sample)) {
-			// 	m_Logger.Write (FromKernel, LogPanic, "No se pudo cerrar el archivo");
-			// }
+			if (!m_FileSystem.FileClose (sample)) {
+				m_Logger.Write (FromKernel, LogPanic, "No se pudo cerrar el archivo");
+			}
 		}
+	}
 
-		// Preparación para reproducción.
+	// Carga de archivos en RAM
 
-		unsigned remainingBytesToRead = header.subChunk2Size;
+	m_Logger.Write (FromKernel, LogNotice, "Tamaño total reservado: %d", totalSizeWavRoom);
+	u8 *wavRoom;
+	wavRoom = new u8[totalSizeWavRoom];
+	int currentWavPosition = 0;
 
-		writeWavData (nQueueSizeFrames, sample, remainingBytesToRead);
+	for (int wavIndex = 0; wavIndex<numberWavs; wavIndex++ ) { 
+		unsigned sample = m_FileSystem.FileOpen(wavMemory[wavIndex].nombre);
+
+		if (sample == 0) { // será cero cuando no haya más archivos en el directorio
+			m_Logger.Write (FromKernel, LogPanic, "No se pudo abrir: %s ", wavMemory[wavIndex].nombre);
+		}
+		else {
+			char wavHeader[44];
+			unsigned nEntryFile = m_FileSystem.FileRead(sample, wavHeader, 44);
+			if (nEntryFile == FS_ERROR) {
+				m_Logger.Write (FromKernel, LogError, "Error al desechar el header");
+			}
+
+			// Comienza la lectura desde la USB.
+			int remainingBytes = sampleInfo[wavIndex].sampleSize;
+			int maxBlockRead = 1000000;
+			int indexReadingSample = 0;
+			while (remainingBytes > 0) {
+				int nBytesToRead = remainingBytes > maxBlockRead ? maxBlockRead : remainingBytes;
+				u8 subchunk2[nBytesToRead];
+				unsigned int chunkWavFile = m_FileSystem.FileRead(sample, subchunk2, nBytesToRead);
+				if (chunkWavFile == FS_ERROR) {
+					m_Logger.Write (FromKernel, LogPanic, "Error al leer fragmento");
+				}
+				else {
+					// COMIENZA CARGA DE ARCHIVOS
+
+					sampleInfo[wavIndex].startIndex = usedSizeWavRoom;
+					for (int loadWavIndex = 0; loadWavIndex < nBytesToRead; loadWavIndex++) {
+						wavRoom[usedSizeWavRoom] = subchunk2[loadWavIndex];
+						usedSizeWavRoom ++;
+					}
+
+					// FINALIZA CARGA DE ARCHIVOS
+					// m_Logger.Write (FromKernel, LogNotice, "Se leyeron: %d", chunkWavFile);
+				}
+				remainingBytes -= nBytesToRead;
+			}
+			
+			m_Logger.Write (FromKernel, LogNotice, "\t Aarchivo leído. Memoria de wav usada acumulada %d", usedSizeWavRoom);
+			m_Logger.Write (FromKernel, LogNotice, " -Índice de inicio %d", sampleInfo[wavIndex].startIndex);
+			m_Logger.Write (FromKernel, LogNotice, " -Tamaño del sample %d", sampleInfo[wavIndex].sampleSize);
+			// cierre del archivo
+			if (!m_FileSystem.FileClose (sample)) {
+				m_Logger.Write (FromKernel, LogPanic, "No se pudo cerrar el archivo");
+			}
+		}
+	}
+
+	//	PUESTA EN REPRODUCCIÓN DE LOS ARCHIVOS.
+
+	for (int sampleIndex = 0; sampleIndex < totalSamples; sampleIndex++) {
+		m_Logger.Write (FromKernel, LogNotice, "REPRODUCIENDO muestra de tamaño... %d", sampleInfo[sampleIndex].sampleSize);
+		unsigned remainingBytesToRead = sampleInfo[sampleIndex].sampleSize;
+		int bufferChunk = 0; // ESTE LLEVA EL CONTROL DE LA LECTURA DE LA RAM EN LA MEMORIA WAV
+		writeWavData (nQueueSizeFrames, remainingBytesToRead, sampleIndex, bufferChunk, wavRoom);
 
 		if (isFirstWav) {
 			// start sound device
@@ -366,27 +441,27 @@ TShutdownMode CKernel::Run (void)
 
 			isFirstWav = false;
 		}
-
 		int i = 0;
 		while (m_pSound->IsActive() && remainingBytesToRead > 0) {
 
-			writeWavData(nQueueSizeFrames - m_pSound->GetQueueFramesAvail(), sample, remainingBytesToRead);
+			writeWavData(nQueueSizeFrames - m_pSound->GetQueueFramesAvail(), remainingBytesToRead, sampleIndex, bufferChunk, wavRoom);
 			i++;
-			m_Logger.Write (FromKernel, LogNotice, "Número de iteraciones secundarias %d", i);
+			// m_Logger.Write (FromKernel, LogNotice, "Número de iteraciones secundarias %d", i);
 		}
 
-		PrintMemoryInfo();
-
-		if (!m_FileSystem.FileClose (sample)) {
-			m_Logger.Write (FromKernel, LogPanic, "No se pudo cerrar el archivo");
-		}
-
-		m_Scheduler.MsSleep (2000);
-
-		m_Logger.Write (FromKernel, LogNotice, "FINALIZÓ LA EJECUCIÓN <3");
-
-		// AQUI DEBE TERMINAR EL CICLO
+		m_Scheduler.MsSleep (500);
+		// break;
+		
 	}
+
+
+	// if (!m_FileSystem.FileClose (sample)) {
+	// 	m_Logger.Write (FromKernel, LogPanic, "No se pudo cerrar el archivo");
+	// }
+
+	PrintMemoryInfo();
+
+	m_Logger.Write (FromKernel, LogNotice, "FINALIZÓ LA EJECUCIÓN <3");
 
 	// const char *mensaje = "--------- Hola desde Circle\r\n";
 	// m_Serial.Write(mensaje, strlen(mensaje));
@@ -405,13 +480,19 @@ TShutdownMode CKernel::Run (void)
 	return ShutdownHalt;
 }
 
-void CKernel::writeWavData(unsigned nFrames, unsigned file, unsigned &remainingBytes) {
+void CKernel::writeWavData(unsigned nFrames, unsigned &remainingBytes, int sampleIndex, int &bufferChunk, u8 *wavRoom) {
 	// nFrames dice cuánto espacio (en frames) tengo en el buffer general de audio
 
-	const unsigned nFramesPerWrite = 4096;
+	const unsigned nFramesPerWrite = 1024;
 
-	u8 bufferToCircle[nFramesPerWrite * WRITE_CHANNELS * TYPE_SIZE];
+	// const unsigned sizeBufferCircle = nFramesPerWrite * WRITE_CHANNELS * TYPE_SIZE; // 4096 bytes
+
+	// m_Logger.Write (FromKernel, LogNotice, "sizeBufferCircle %d", sizeBufferCircle);
+
+	// u8 bufferToCircle[sizeBufferCircle]; // revisar si verdaderamente este buffer tan grande se está ocupando por completo.
 	// el fragmento de datos que se mandará al audio gestionado por circle, es un buffer temporal.
+
+	
 
 	while (nFrames > 0 && remainingBytes > 0) {
 		unsigned nWriteFrames = nFrames < nFramesPerWrite ? nFrames : nFramesPerWrite;
@@ -423,24 +504,31 @@ void CKernel::writeWavData(unsigned nFrames, unsigned file, unsigned &remainingB
 		
 		// obtener datos de la microsd
 
-		// saber el tamaño de frames que puedo leer de la microsd
+		// saber el tamaño de BYTES que puedo leer de la ram
 		unsigned nReadedBytes = remainingBytes < nBytesByIter ? remainingBytes : nBytesByIter;
 		
-		unsigned int chunkWavFile = m_FileSystem.FileRead(file, bufferToCircle, nReadedBytes);
-		if (chunkWavFile == FS_ERROR) {
-			m_Logger.Write (FromKernel, LogPanic, "Error al leer fragmento");
-		}
+		// unsigned int chunkWavFile = m_FileSystem.FileRead(file, bufferToCircle, nReadedBytes);
+		// if (chunkWavFile == FS_ERROR) {
+		// 	m_Logger.Write (FromKernel, LogPanic, "Error al leer fragmento");
+		// }
+		// bufferToCircle = 
+
+		// SE TIENE QUE LLEVAR OTRO CONTADOR SOBRE LO QUE SE VA ITERANDO Y LO QUE NO
+		// memcpy(bufferToCircle, wavRoom + sampleInfo[sampleIndex].startIndex + bufferChunk, nReadedBytes);
+
 
 		// se terminaron de obtener los datos de la microsd
 
-		int nResult = m_pSound->Write(bufferToCircle, nReadedBytes);
+		int nResult = m_pSound->Write(wavRoom + sampleInfo[sampleIndex].startIndex + bufferChunk, nReadedBytes);  // <------ CREO QUE EL PROBLEMA ESTÁ EN QUE SIEMPRE SE ESCRIBE LA MISMA FRACCIÓN DEL BUFFER
 		if (nResult != (int)nReadedBytes) {
 			m_Logger.Write(FromKernel, LogError, "no se pudo escribir el bloque") ;
 		}
 	
 		nFrames -= nWriteFrames;
 		remainingBytes -= nReadedBytes;
-		m_Logger.Write(FromKernel, LogNotice, "Frames restantes en el buffer %d, bytes disponibles en la sd %d", nFrames, remainingBytes);
+		bufferChunk += nReadedBytes;
+		// m_Logger.Write(FromKernel, LogNotice, "Frames restantes en el buffer %d, bytes disponibles en la sd %d", nFrames, remainingBytes);
+		// m_Scheduler.Yield ();		// ensure the VCHIQ tasks can run
 	}
 }
 
@@ -520,4 +608,8 @@ void CKernel::PrintMemoryInfo()
     {
         m_Logger.Write(FromKernel, LogError, "Error: No se pudo obtener la información de memoria");
     }
+}
+
+void CKernel::readMemoryRoom(int startPCM, int sizePCM, int *data, int bytesToRead) {
+
 }

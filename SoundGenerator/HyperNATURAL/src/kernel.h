@@ -63,9 +63,11 @@ public:
 private:
 	void WriteSoundData (unsigned nFrames);
 
-	void writeWavData (unsigned nFrames, unsigned file, unsigned &remainingBytes);
+	void writeWavData (unsigned nFrames, unsigned &remainingBytes, int sampleIndex, int &bufferChunk, u8 *wavRoom);
 
 	void GetSoundData (void *pBuffer, unsigned nFrames);
+
+	void readMemoryRoom(int startPCM, int sizePCM, int *data, int bytesToRead);
 
 	void PrintMemoryInfo();
 

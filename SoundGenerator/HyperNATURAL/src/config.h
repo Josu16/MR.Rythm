@@ -27,7 +27,7 @@
 
 #define VOLUME		0.5		// [0.0, 1.0]
 
-#define QUEUE_SIZE_MSECS 200		// size of the sound queue in milliseconds duration
+#define QUEUE_SIZE_MSECS 500		// size of the sound queue in milliseconds duration
 #define CHUNK_SIZE	(384 * 10)	// number of samples, written to sound device at once
 
 #define DAC_I2C_ADDRESS	0		// I2C slave address of the DAC (0 for auto probing)
